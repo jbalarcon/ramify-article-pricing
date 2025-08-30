@@ -117,6 +117,7 @@ class PricingSimulator {
             baseline: { model: 'PW', params: { rate: 0.13 }, bonusPercent: 0 },
             simulation: { model: 'PW', params: { rate: 0.13 }, bonusPercent: 0 },
             writerOverrides: {}
+        };
     }
 
     processCSV(file) {
