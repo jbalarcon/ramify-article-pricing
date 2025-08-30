@@ -622,7 +622,7 @@ class PricingSimulator {
             Math.round(monthlyData[month].totalWords / monthlyData[month].count)
         );
         
-        if (window.wordCountChart) {
+        if (window.wordCountChart && typeof window.wordCountChart.destroy === 'function') {
             window.wordCountChart.destroy();
         }
         
@@ -680,7 +680,7 @@ class PricingSimulator {
         writerData.sort((a, b) => (b.baseline + b.simulation) - (a.baseline + a.simulation));
         const topWriters = writerData.slice(0, 10);
         
-        if (window.costComparisonChart) {
+        if (window.costComparisonChart && typeof window.costComparisonChart.destroy === 'function') {
             window.costComparisonChart.destroy();
         }
         
