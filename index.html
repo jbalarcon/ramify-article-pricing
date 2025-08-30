@@ -31,54 +31,114 @@
             <div class="sidebar-section config-section" id="configSection" style="display: none;">
                 <h2>Configuration</h2>
                 
-                <div class="config-subsection">
-                    <h3>Paramètres Globaux</h3>
-                    
-                    <div class="config-group">
-                        <h4>Baseline (Historique)</h4>
-                        <div class="form-group">
-                            <label>Modèle:</label>
-                            <select id="globalBaselineModel">
-                                <option value="PW">Par Mot (PW)</option>
-                                <option value="FP">Prix Fixe (FP)</option>
-                                <option value="HY">Hybride (HY)</option>
-                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
-                                <option value="CO">Cap + Dépassement (C+O)</option>
-                            </select>
-                        </div>
-                        <div id="globalBaselineParams" class="model-params"></div>
-                        <div class="form-group">
-                            <label>Bonus Qualité (%):</label>
-                            <input type="number" id="globalBaselineBonus" value="0" min="0" max="100" step="0.1">
-                        </div>
+                <div class="config-wizard">
+                    <div class="wizard-tabs">
+                        <button class="wizard-tab active" data-step="strategy">1. Stratégie</button>
+                        <button class="wizard-tab" data-step="models">2. Modèles</button>
+                        <button class="wizard-tab" data-step="writers">3. Rédacteurs</button>
                     </div>
 
-                    <div class="config-group">
-                        <h4>Simulation</h4>
-                        <div class="form-group">
-                            <label>Modèle:</label>
-                            <select id="globalSimulationModel">
-                                <option value="PW">Par Mot (PW)</option>
-                                <option value="FP">Prix Fixe (FP)</option>
-                                <option value="HY">Hybride (HY)</option>
-                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
-                                <option value="CO">Cap + Dépassement (C+O)</option>
-                            </select>
+                    <div class="wizard-content">
+                        <!-- Step 1: Strategy Selection -->
+                        <div id="strategy-step" class="wizard-step active">
+                            <h3>Choisissez votre stratégie de tarification</h3>
+                            
+                            <div class="strategy-cards">
+                                <div class="strategy-card" data-strategy="optimize">
+                                    <div class="strategy-icon">📊</div>
+                                    <h4>Optimiser le budget</h4>
+                                    <p>Réduire les coûts pour les rédacteurs réguliers tout en gardant la flexibilité</p>
+                                    <div class="strategy-badge recommended">Recommandé</div>
+                                </div>
+                                
+                                <div class="strategy-card" data-strategy="quality">
+                                    <div class="strategy-icon">⭐</div>
+                                    <h4>Récompenser la qualité</h4>
+                                    <p>Ajouter des bonus pour encourager le travail de qualité</p>
+                                </div>
+                                
+                                <div class="strategy-card" data-strategy="custom">
+                                    <div class="strategy-icon">⚙️</div>
+                                    <h4>Personnalisé</h4>
+                                    <p>Configurer manuellement chaque modèle et paramètre</p>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" id="nextToModels" style="margin-top: 20px;">Suivant →</button>
                         </div>
-                        <div id="globalSimulationParams" class="model-params"></div>
-                        <div class="form-group">
-                            <label>Bonus Qualité (%):</label>
-                            <input type="number" id="globalSimulationBonus" value="0" min="0" max="100" step="0.1">
+
+                        <!-- Step 2: Model Selection -->
+                        <div id="models-step" class="wizard-step" style="display: none;">
+                            <h3>Modèles de tarification</h3>
+                            
+                            <div class="model-selector">
+                                <div class="model-card" data-model="PW">
+                                    <div class="model-header">
+                                        <h4>📝 Tarif au volume</h4>
+                                        <input type="radio" name="model" value="PW" class="model-radio">
+                                    </div>
+                                    <p class="model-desc">Prix proportionnel au nombre de mots</p>
+                                    <div class="model-formula">Coût = Mots × Tarif</div>
+                                    <div class="model-best-for">Idéal pour : Contenu variable</div>
+                                </div>
+
+                                <div class="model-card" data-model="CO">
+                                    <div class="model-header">
+                                        <h4>🎯 Prix plafonné</h4>
+                                        <input type="radio" name="model" value="CO" class="model-radio">
+                                    </div>
+                                    <p class="model-desc">Prix fixe jusqu'à un seuil, puis tarif au mot</p>
+                                    <div class="model-formula">Coût = Fixe (si ≤ seuil) ou Fixe + dépassement</div>
+                                    <div class="model-best-for">Idéal pour : Rédacteurs réguliers</div>
+                                </div>
+
+                                <div class="model-card" data-model="FP">
+                                    <div class="model-header">
+                                        <h4>💰 Prix fixe</h4>
+                                        <input type="radio" name="model" value="FP" class="model-radio">
+                                    </div>
+                                    <p class="model-desc">Même prix peu importe la longueur</p>
+                                    <div class="model-formula">Coût = Montant fixe</div>
+                                    <div class="model-best-for">Idéal pour : Budget strict</div>
+                                </div>
+
+                                <div class="model-card" data-model="HY">
+                                    <div class="model-header">
+                                        <h4>🔄 Hybride</h4>
+                                        <input type="radio" name="model" value="HY" class="model-radio">
+                                    </div>
+                                    <p class="model-desc">Frais de base + tarif réduit au mot</p>
+                                    <div class="model-formula">Coût = Base + (Mots × Tarif réduit)</div>
+                                    <div class="model-best-for">Idéal pour : Contenu recherché</div>
+                                </div>
+                            </div>
+
+                            <div class="model-params-section" id="globalModelParams" style="display: none;">
+                                <h4>Paramètres du modèle</h4>
+                                <div id="modelParamsContainer"></div>
+                            </div>
+
+                            <div class="navigation-buttons">
+                                <button class="btn btn-secondary" id="backToStrategy">← Retour</button>
+                                <button class="btn btn-primary" id="nextToWriters">Suivant →</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Writer Configuration -->
+                        <div id="writers-step" class="wizard-step" style="display: none;">
+                            <h3>Configuration par rédacteur</h3>
+                            
+                            <div class="writer-recommendations" id="writerRecommendations">
+                                <!-- Will be populated dynamically -->
+                            </div>
+
+                            <div class="navigation-buttons">
+                                <button class="btn btn-secondary" id="backToModels">← Retour</button>
+                                <button class="btn btn-primary" id="applyConfig">Appliquer la configuration</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="config-subsection">
-                    <h3>Configuration par Rédacteur</h3>
-                    <div id="writerConfigs" class="writer-configs"></div>
-                </div>
-
-                <button id="applyConfig" class="btn btn-primary">Appliquer Configuration</button>
             </div>
         </aside>
 
