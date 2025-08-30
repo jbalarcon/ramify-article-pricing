@@ -501,6 +501,436 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--white);
+    width: 90%;
+    max-width: 1400px;
+    height: 90vh;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.modal-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 0;
+}
+
+.modal-footer {
+    padding: 20px 32px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Configuration Layout */
+.config-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    height: 100%;
+}
+
+.config-main {
+    padding: 24px 32px;
+    overflow-y: auto;
+    border-right: 1px solid var(--gray-200);
+}
+
+.config-preview {
+    padding: 24px;
+    background: var(--gray-50);
+    overflow-y: auto;
+}
+
+.config-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.config-tab {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--gray-600);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.config-tab:hover {
+    color: var(--sky-600);
+}
+
+.config-tab.active {
+    color: var(--sky-600);
+    border-bottom-color: var(--sky-500);
+}
+
+.config-panel {
+    display: none;
+}
+
+.config-panel.active {
+    display: block;
+}
+
+.config-panel h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--gray-900);
+}
+
+.help-text {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-bottom: 24px;
+}
+
+/* Model Cards */
+.model-selection {
+    margin-bottom: 32px;
+}
+
+.model-selection h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--gray-800);
+}
+
+.model-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.model-card {
+    position: relative;
+}
+
+.model-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.model-card label {
+    display: block;
+    padding: 16px;
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.model-card:hover label {
+    border-color: var(--sky-300);
+    background: var(--sky-50);
+}
+
+.model-card input[type="radio"]:checked + label {
+    border-color: var(--sky-500);
+    background: var(--sky-50);
+}
+
+.model-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--gray-900);
+}
+
+.model-description {
+    font-size: 12px;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+
+.model-example {
+    font-size: 11px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    color: var(--sky-700);
+    background: var(--sky-50);
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+/* Model Parameters */
+.model-parameters {
+    background: var(--gray-50);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.model-parameters h5 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--gray-800);
+}
+
+.parameter-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.parameter-field {
+    margin-bottom: 0;
+}
+
+.parameter-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--gray-700);
+}
+
+.parameter-field input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.parameter-field .help {
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-top: 2px;
+}
+
+/* Writer Configurations */
+.writer-overrides h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--gray-800);
+}
+
+.writer-config-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.writer-config-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+}
+
+.writer-config-row:hover {
+    background: var(--gray-50);
+}
+
+.writer-name-label {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--gray-800);
+}
+
+.writer-stats-label {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.writer-config-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.writer-override-checkbox {
+    margin-right: 8px;
+}
+
+.writer-model-select {
+    padding: 4px 8px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 13px;
+    background: var(--white);
+}
+
+/* Preview Panel */
+.config-preview h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--gray-900);
+}
+
+.preview-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--white);
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.preview-metric label {
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.preview-metric span {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.preview-metric.highlight {
+    background: var(--sky-100);
+    border: 1px solid var(--sky-300);
+}
+
+.preview-metric.highlight span {
+    color: var(--sky-700);
+}
+
+.preview-chart {
+    margin: 24px 0;
+    height: 200px;
+    background: var(--white);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.preview-details h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--gray-800);
+}
+
+#preview-writer-impact {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.writer-impact-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background: var(--white);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.writer-impact-row .name {
+    color: var(--gray-700);
+}
+
+.writer-impact-row .change {
+    font-weight: 600;
+}
+
+.writer-impact-row .change.positive {
+    color: var(--danger);
+}
+
+.writer-impact-row .change.negative {
+    color: var(--success);
+}
+
+/* Sidebar adjustments */
+.config-description {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-bottom: 16px;
+}
+
+.current-config {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.current-config h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--gray-700);
+}
+
+.config-summary-content {
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.6;
+}
+
 @media (max-width: 1024px) {
     .app-container {
         flex-direction: column;
@@ -515,5 +945,13 @@ body {
     
     .charts-section {
         grid-template-columns: 1fr;
+    }
+    
+    .config-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .config-preview {
+        display: none;
     }
 }

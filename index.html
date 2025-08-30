@@ -30,55 +30,15 @@
 
             <div class="sidebar-section config-section" id="configSection" style="display: none;">
                 <h2>Configuration</h2>
+                <p class="config-description">Configurez les modèles de tarification pour comparer l'impact financier</p>
+                <button id="openConfigModal" class="btn btn-primary">Ouvrir la configuration</button>
                 
-                <div class="config-subsection">
-                    <h3>Paramètres Globaux</h3>
-                    
-                    <div class="config-group">
-                        <h4>Baseline (Historique)</h4>
-                        <div class="form-group">
-                            <label>Modèle:</label>
-                            <select id="globalBaselineModel">
-                                <option value="PW">Par Mot (PW)</option>
-                                <option value="FP">Prix Fixe (FP)</option>
-                                <option value="HY">Hybride (HY)</option>
-                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
-                                <option value="CO">Cap + Dépassement (C+O)</option>
-                            </select>
-                        </div>
-                        <div id="globalBaselineParams" class="model-params"></div>
-                        <div class="form-group">
-                            <label>Bonus Qualité (%):</label>
-                            <input type="number" id="globalBaselineBonus" value="0" min="0" max="100" step="0.1">
-                        </div>
-                    </div>
-
-                    <div class="config-group">
-                        <h4>Simulation</h4>
-                        <div class="form-group">
-                            <label>Modèle:</label>
-                            <select id="globalSimulationModel">
-                                <option value="PW">Par Mot (PW)</option>
-                                <option value="FP">Prix Fixe (FP)</option>
-                                <option value="HY">Hybride (HY)</option>
-                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
-                                <option value="CO">Cap + Dépassement (C+O)</option>
-                            </select>
-                        </div>
-                        <div id="globalSimulationParams" class="model-params"></div>
-                        <div class="form-group">
-                            <label>Bonus Qualité (%):</label>
-                            <input type="number" id="globalSimulationBonus" value="0" min="0" max="100" step="0.1">
-                        </div>
+                <div class="current-config" id="currentConfigSummary" style="display: none;">
+                    <h3>Configuration active</h3>
+                    <div class="config-summary-content" id="configSummaryContent">
+                        <!-- Will be populated dynamically -->
                     </div>
                 </div>
-
-                <div class="config-subsection">
-                    <h3>Configuration par Rédacteur</h3>
-                    <div id="writerConfigs" class="writer-configs"></div>
-                </div>
-
-                <button id="applyConfig" class="btn btn-primary">Appliquer Configuration</button>
             </div>
         </aside>
 
@@ -214,6 +174,195 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="configModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configuration de la Tarification</h2>
+                <button class="modal-close" id="closeConfigModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="config-layout">
+                    <!-- Left side: Model selection and parameters -->
+                    <div class="config-main">
+                        <div class="config-tabs">
+                            <button class="config-tab active" data-config="baseline">Tarification Actuelle</button>
+                            <button class="config-tab" data-config="simulation">Nouvelle Tarification</button>
+                        </div>
+                        
+                        <div id="baseline-config" class="config-panel active">
+                            <h3>Tarification Actuelle (référence)</h3>
+                            <p class="help-text">Définissez votre modèle de tarification actuel pour servir de point de comparaison</p>
+                            
+                            <div class="model-selection">
+                                <h4>Modèle par défaut</h4>
+                                <div class="model-cards">
+                                    <div class="model-card" data-model="PW">
+                                        <input type="radio" name="baseline-model" value="PW" id="baseline-PW" checked>
+                                        <label for="baseline-PW">
+                                            <div class="model-title">Tarif au volume</div>
+                                            <div class="model-description">Prix proportionnel au nombre de mots</div>
+                                            <div class="model-example">Exemple: 1000 mots × 0.13€ = 130€</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="FP">
+                                        <input type="radio" name="baseline-model" value="FP" id="baseline-FP">
+                                        <label for="baseline-FP">
+                                            <div class="model-title">Prix fixe</div>
+                                            <div class="model-description">Même prix peu importe la longueur</div>
+                                            <div class="model-example">Exemple: Toujours 100€</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="HY">
+                                        <input type="radio" name="baseline-model" value="HY" id="baseline-HY">
+                                        <label for="baseline-HY">
+                                            <div class="model-title">Modèle hybride</div>
+                                            <div class="model-description">Frais de base + tarif réduit au mot</div>
+                                            <div class="model-example">Exemple: 50€ + (1000 mots × 0.08€) = 130€</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="DMR">
+                                        <input type="radio" name="baseline-model" value="DMR" id="baseline-DMR">
+                                        <label for="baseline-DMR">
+                                            <div class="model-title">Tarif dégressif</div>
+                                            <div class="model-description">Prix réduit après un certain seuil</div>
+                                            <div class="model-example">Exemple: 0.13€/mot jusqu'à 1000, puis 0.08€/mot</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="CO">
+                                        <input type="radio" name="baseline-model" value="CO" id="baseline-CO">
+                                        <label for="baseline-CO">
+                                            <div class="model-title">Prix plafonné</div>
+                                            <div class="model-description">Prix fixe jusqu'à un seuil, puis tarif au mot</div>
+                                            <div class="model-example">Exemple: 500€ jusqu'à 5000 mots, puis +0.13€/mot</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-parameters" id="baseline-params">
+                                    <!-- Parameters will be inserted here -->
+                                </div>
+                            </div>
+                            
+                            <div class="writer-overrides">
+                                <h4>Personnalisation par rédacteur</h4>
+                                <div id="baseline-writer-configs" class="writer-config-list">
+                                    <!-- Writer configurations will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="simulation-config" class="config-panel">
+                            <h3>Nouvelle Tarification (simulation)</h3>
+                            <p class="help-text">Définissez le nouveau modèle de tarification que vous souhaitez tester</p>
+                            
+                            <div class="model-selection">
+                                <h4>Modèle par défaut</h4>
+                                <div class="model-cards">
+                                    <div class="model-card" data-model="PW">
+                                        <input type="radio" name="simulation-model" value="PW" id="simulation-PW" checked>
+                                        <label for="simulation-PW">
+                                            <div class="model-title">Tarif au volume</div>
+                                            <div class="model-description">Prix proportionnel au nombre de mots</div>
+                                            <div class="model-example">Exemple: 1000 mots × 0.13€ = 130€</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="FP">
+                                        <input type="radio" name="simulation-model" value="FP" id="simulation-FP">
+                                        <label for="simulation-FP">
+                                            <div class="model-title">Prix fixe</div>
+                                            <div class="model-description">Même prix peu importe la longueur</div>
+                                            <div class="model-example">Exemple: Toujours 100€</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="HY">
+                                        <input type="radio" name="simulation-model" value="HY" id="simulation-HY">
+                                        <label for="simulation-HY">
+                                            <div class="model-title">Modèle hybride</div>
+                                            <div class="model-description">Frais de base + tarif réduit au mot</div>
+                                            <div class="model-example">Exemple: 50€ + (1000 mots × 0.08€) = 130€</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="DMR">
+                                        <input type="radio" name="simulation-model" value="DMR" id="simulation-DMR">
+                                        <label for="simulation-DMR">
+                                            <div class="model-title">Tarif dégressif</div>
+                                            <div class="model-description">Prix réduit après un certain seuil</div>
+                                            <div class="model-example">Exemple: 0.13€/mot jusqu'à 1000, puis 0.08€/mot</div>
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="model-card" data-model="CO">
+                                        <input type="radio" name="simulation-model" value="CO" id="simulation-CO">
+                                        <label for="simulation-CO">
+                                            <div class="model-title">Prix plafonné</div>
+                                            <div class="model-description">Prix fixe jusqu'à un seuil, puis tarif au mot</div>
+                                            <div class="model-example">Exemple: 500€ jusqu'à 5000 mots, puis +0.13€/mot</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="model-parameters" id="simulation-params">
+                                    <!-- Parameters will be inserted here -->
+                                </div>
+                            </div>
+                            
+                            <div class="writer-overrides">
+                                <h4>Personnalisation par rédacteur</h4>
+                                <div id="simulation-writer-configs" class="writer-config-list">
+                                    <!-- Writer configurations will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right side: Preview -->
+                    <div class="config-preview">
+                        <h3>Aperçu de l'impact</h3>
+                        <div id="config-preview-content">
+                            <div class="preview-metric">
+                                <label>Coût total actuel:</label>
+                                <span id="preview-baseline-cost">-</span>
+                            </div>
+                            <div class="preview-metric">
+                                <label>Nouveau coût total:</label>
+                                <span id="preview-simulation-cost">-</span>
+                            </div>
+                            <div class="preview-metric highlight">
+                                <label>Différence:</label>
+                                <span id="preview-difference">-</span>
+                            </div>
+                            
+                            <div class="preview-chart">
+                                <canvas id="preview-chart"></canvas>
+                            </div>
+                            
+                            <div class="preview-details">
+                                <h4>Impact par rédacteur</h4>
+                                <div id="preview-writer-impact">
+                                    <!-- Writer impact will be shown here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelConfig">Annuler</button>
+                <button class="btn btn-primary" id="applyConfig">Appliquer la configuration</button>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

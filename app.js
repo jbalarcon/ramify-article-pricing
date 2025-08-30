@@ -45,26 +45,59 @@ class PricingSimulator {
             });
         }
 
-        const globalBaselineModel = document.getElementById('globalBaselineModel');
-        if (globalBaselineModel) {
-            globalBaselineModel.addEventListener('change', (e) => {
-                this.updateModelParams('globalBaselineParams', e.target.value);
+        // Modal controls
+        const openModalBtn = document.getElementById('openConfigModal');
+        const closeModalBtn = document.getElementById('closeConfigModal');
+        const cancelConfigBtn = document.getElementById('cancelConfig');
+        const applyConfigBtn = document.getElementById('applyConfig');
+        const modal = document.getElementById('configModal');
+        
+        if (openModalBtn) {
+            openModalBtn.addEventListener('click', () => {
+                this.openConfigModal();
             });
         }
         
-        const globalSimulationModel = document.getElementById('globalSimulationModel');
-        if (globalSimulationModel) {
-            globalSimulationModel.addEventListener('change', (e) => {
-                this.updateModelParams('globalSimulationParams', e.target.value);
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => {
+                this.closeConfigModal();
             });
         }
-
-        const applyConfig = document.getElementById('applyConfig');
-        if (applyConfig) {
-            applyConfig.addEventListener('click', () => {
+        
+        if (cancelConfigBtn) {
+            cancelConfigBtn.addEventListener('click', () => {
+                this.closeConfigModal();
+            });
+        }
+        
+        if (applyConfigBtn) {
+            applyConfigBtn.addEventListener('click', () => {
                 this.applyConfiguration();
+                this.closeConfigModal();
             });
         }
+        
+        // Config tabs
+        document.querySelectorAll('.config-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                this.switchConfigTab(e.target.dataset.config);
+            });
+        });
+        
+        // Model selection
+        document.querySelectorAll('input[name="baseline-model"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.updateModalModelParams('baseline', e.target.value);
+                this.updatePreview();
+            });
+        });
+        
+        document.querySelectorAll('input[name="simulation-model"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.updateModalModelParams('simulation', e.target.value);
+                this.updatePreview();
+            });
+        })
 
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -79,8 +112,11 @@ class PricingSimulator {
             });
         }
 
-        this.updateModelParams('globalBaselineParams', 'PW');
-        this.updateModelParams('globalSimulationParams', 'PW');
+        // Initialize default model parameters
+        this.tempConfig = {
+            baseline: { model: 'PW', params: { rate: 0.13 }, bonusPercent: 0 },
+            simulation: { model: 'PW', params: { rate: 0.13 }, bonusPercent: 0 },
+            writerOverrides: {}
     }
 
     processCSV(file) {
@@ -89,9 +125,8 @@ class PricingSimulator {
             complete: (results) => {
                 try {
                     this.parseArticles(results.data);
-                    this.showFeedback('success', `✓ ${this.articles.length} articles importés avec succès`);
+                    this.showFeedback('success', `${this.articles.length} articles importés avec succès`);
                     document.getElementById('configSection').style.display = 'block';
-                    this.populateWriterConfigs();
                     this.calculateAndDisplay();
                 } catch (error) {
                     this.showFeedback('error', `✗ Erreur lors de l'import: ${error.message}`);
@@ -328,34 +363,47 @@ class PricingSimulator {
     }
 
     applyConfiguration() {
-        this.configuration.globalDefaults.baseline = this.getGlobalConfig('baseline');
-        this.configuration.globalDefaults.simulation = this.getGlobalConfig('simulation');
-        
-        this.configuration.writerOverrides = {};
-        
-        this.writers.forEach(writer => {
-            const baselineCheckbox = document.getElementById(`baseline-override-${writer}`);
-            const simulationCheckbox = document.getElementById(`simulation-override-${writer}`);
-            
-            if (!baselineCheckbox || !simulationCheckbox) return;
-            
-            const baselineOverride = baselineCheckbox.checked;
-            const simulationOverride = simulationCheckbox.checked;
-            
-            if (baselineOverride || simulationOverride) {
-                this.configuration.writerOverrides[writer] = {};
-                
-                if (baselineOverride) {
-                    this.configuration.writerOverrides[writer].baseline = this.getWriterConfig(writer, 'baseline');
-                }
-                
-                if (simulationOverride) {
-                    this.configuration.writerOverrides[writer].simulation = this.getWriterConfig(writer, 'simulation');
-                }
-            }
-        });
+        // Copy temp config to actual config
+        this.configuration.globalDefaults = {
+            baseline: { ...this.tempConfig.baseline },
+            simulation: { ...this.tempConfig.simulation }
+        };
+        this.configuration.writerOverrides = { ...this.tempConfig.writerOverrides };
         
         this.calculateAndDisplay();
+        this.showFeedback('success', 'Configuration appliquée avec succès');
+        this.updateConfigSummary();
+    }
+    
+    updateConfigSummary() {
+        const summary = document.getElementById('configSummaryContent');
+        const container = document.getElementById('currentConfigSummary');
+        
+        if (!summary || !container) return;
+        
+        container.style.display = 'block';
+        
+        const baselineModel = this.getModelName(this.configuration.globalDefaults.baseline.model);
+        const simulationModel = this.getModelName(this.configuration.globalDefaults.simulation.model);
+        
+        const overrideCount = Object.keys(this.configuration.writerOverrides).length;
+        
+        summary.innerHTML = `
+            <div><strong>Tarification actuelle:</strong> ${baselineModel}</div>
+            <div><strong>Nouvelle tarification:</strong> ${simulationModel}</div>
+            ${overrideCount > 0 ? `<div><strong>Personnalisations:</strong> ${overrideCount} rédacteur(s)</div>` : ''}
+        `;
+    }
+    
+    getModelName(model) {
+        const names = {
+            'PW': 'Tarif au volume',
+            'FP': 'Prix fixe',
+            'HY': 'Modèle hybride',
+            'DMR': 'Tarif dégressif',
+            'CO': 'Prix plafonné'
+        };
+        return names[model] || model;
     }
 
     getGlobalConfig(scenario) {
@@ -743,6 +791,355 @@ class PricingSimulator {
         
         document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(tabName).classList.add('active');
+    }
+    
+    openConfigModal() {
+        const modal = document.getElementById('configModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            this.populateModalWriterConfigs();
+            this.updateModalModelParams('baseline', 'PW');
+            this.updateModalModelParams('simulation', 'PW');
+            this.updatePreview();
+        }
+    }
+    
+    closeConfigModal() {
+        const modal = document.getElementById('configModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    switchConfigTab(tabName) {
+        document.querySelectorAll('.config-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.config-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        
+        document.querySelector(`.config-tab[data-config="${tabName}"]`).classList.add('active');
+        document.getElementById(`${tabName}-config`).classList.add('active');
+    }
+    
+    updateModalModelParams(scenario, model) {
+        const container = document.getElementById(`${scenario}-params`);
+        if (!container) return;
+        
+        container.innerHTML = '';
+        container.innerHTML = '<h5>Paramètres</h5>';
+        
+        const paramGroup = document.createElement('div');
+        paramGroup.className = 'parameter-group';
+        
+        const params = this.getModelParamsForModal(model);
+        params.forEach(param => {
+            const field = document.createElement('div');
+            field.className = 'parameter-field';
+            field.innerHTML = `
+                <label>${param.label}</label>
+                <input type="number" 
+                       data-scenario="${scenario}"
+                       data-param="${param.key}" 
+                       value="${param.defaultValue}" 
+                       step="${param.step || 0.01}"
+                       min="0"
+                       class="modal-param-input">
+                ${param.help ? `<div class="help">${param.help}</div>` : ''}
+            `;
+            paramGroup.appendChild(field);
+        });
+        
+        // Add quality bonus field
+        const bonusField = document.createElement('div');
+        bonusField.className = 'parameter-field';
+        bonusField.innerHTML = `
+            <label>Bonus Qualité (%)</label>
+            <input type="number" 
+                   data-scenario="${scenario}"
+                   data-param="bonus" 
+                   value="0" 
+                   step="0.5"
+                   min="0"
+                   max="20"
+                   class="modal-param-input">
+            <div class="help">Augmentation pour récompenser la qualité</div>
+        `;
+        paramGroup.appendChild(bonusField);
+        
+        container.appendChild(paramGroup);
+        
+        // Update temp config
+        this.tempConfig[scenario].model = model;
+        this.tempConfig[scenario].params = this.getDefaultParamsForModel(model);
+        
+        // Add change listeners
+        container.querySelectorAll('.modal-param-input').forEach(input => {
+            input.addEventListener('input', () => {
+                this.updateTempConfigFromModal();
+                this.updatePreview();
+            });
+        });
+    }
+    
+    getModelParamsForModal(model) {
+        const params = {
+            'PW': [
+                { label: 'Tarif par mot (€)', key: 'rate', defaultValue: 0.13, step: 0.001, help: 'Prix pour chaque mot' }
+            ],
+            'FP': [
+                { label: 'Prix fixe (€)', key: 'fixedAmount', defaultValue: 100, step: 1, help: 'Montant fixe par article' }
+            ],
+            'HY': [
+                { label: 'Frais de base (€)', key: 'baseFee', defaultValue: 50, step: 1, help: 'Coût initial de recherche' },
+                { label: 'Tarif réduit (€/mot)', key: 'reducedRate', defaultValue: 0.08, step: 0.001, help: 'Prix par mot après les frais de base' }
+            ],
+            'DMR': [
+                { label: 'Tarif standard (€/mot)', key: 'standardRate', defaultValue: 0.13, step: 0.001, help: 'Prix normal par mot' },
+                { label: 'Seuil (mots)', key: 'threshold', defaultValue: 1000, step: 100, help: 'Nombre de mots avant réduction' },
+                { label: 'Tarif réduit (€/mot)', key: 'lowerRate', defaultValue: 0.08, step: 0.001, help: 'Prix après le seuil' }
+            ],
+            'CO': [
+                { label: 'Prix fixe (€)', key: 'fixedAmount', defaultValue: 500, step: 1, help: 'Montant pour articles normaux' },
+                { label: 'Plafond (mots)', key: 'cap', defaultValue: 5000, step: 100, help: 'Limite avant tarif supplémentaire' },
+                { label: 'Tarif dépassement (€/mot)', key: 'overageRate', defaultValue: 0.13, step: 0.001, help: 'Prix par mot au-delà du plafond' }
+            ]
+        };
+        return params[model] || [];
+    }
+    
+    getDefaultParamsForModel(model) {
+        const defaults = {
+            'PW': { rate: 0.13 },
+            'FP': { fixedAmount: 100 },
+            'HY': { baseFee: 50, reducedRate: 0.08 },
+            'DMR': { standardRate: 0.13, threshold: 1000, lowerRate: 0.08 },
+            'CO': { fixedAmount: 500, cap: 5000, overageRate: 0.13 }
+        };
+        return defaults[model] || {}; 
+    }
+    
+    populateModalWriterConfigs() {
+        const baselineContainer = document.getElementById('baseline-writer-configs');
+        const simulationContainer = document.getElementById('simulation-writer-configs');
+        
+        if (!baselineContainer || !simulationContainer) return;
+        
+        baselineContainer.innerHTML = '';
+        simulationContainer.innerHTML = '';
+        
+        const writerStats = this.calculateWriterStatistics();
+        
+        Array.from(this.writers).sort().forEach(writer => {
+            const stats = writerStats[writer];
+            
+            // Baseline config
+            const baselineRow = document.createElement('div');
+            baselineRow.className = 'writer-config-row';
+            baselineRow.innerHTML = `
+                <div>
+                    <div class="writer-name-label">${writer}</div>
+                    <div class="writer-stats-label">CV: ${stats.cv.toFixed(2)} | Moy: ${stats.mean} mots</div>
+                </div>
+                <div class="writer-config-control">
+                    <input type="checkbox" class="writer-override-checkbox" 
+                           data-scenario="baseline" data-writer="${writer}">
+                    <select class="writer-model-select" data-scenario="baseline" data-writer="${writer}" disabled>
+                        <option value="PW">Tarif au volume</option>
+                        <option value="FP">Prix fixe</option>
+                        <option value="HY">Hybride</option>
+                        <option value="DMR">Dégressif</option>
+                        <option value="CO">Plafonné</option>
+                    </select>
+                </div>
+            `;
+            baselineContainer.appendChild(baselineRow);
+            
+            // Simulation config
+            const simulationRow = document.createElement('div');
+            simulationRow.className = 'writer-config-row';
+            simulationRow.innerHTML = `
+                <div>
+                    <div class="writer-name-label">${writer}</div>
+                    <div class="writer-stats-label">CV: ${stats.cv.toFixed(2)} | P75: ${stats.p75} mots</div>
+                </div>
+                <div class="writer-config-control">
+                    <input type="checkbox" class="writer-override-checkbox" 
+                           data-scenario="simulation" data-writer="${writer}">
+                    <select class="writer-model-select" data-scenario="simulation" data-writer="${writer}" disabled>
+                        <option value="PW">Tarif au volume</option>
+                        <option value="FP">Prix fixe</option>
+                        <option value="HY">Hybride</option>
+                        <option value="DMR">Dégressif</option>
+                        <option value="CO" ${stats.cv < 0.3 ? 'selected' : ''}>Plafonné</option>
+                    </select>
+                </div>
+            `;
+            simulationContainer.appendChild(simulationRow);
+        });
+        
+        // Add change listeners
+        document.querySelectorAll('.writer-override-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const select = e.target.parentElement.querySelector('.writer-model-select');
+                select.disabled = !e.target.checked;
+                this.updateTempConfigFromModal();
+                this.updatePreview();
+            });
+        });
+        
+        document.querySelectorAll('.writer-model-select').forEach(select => {
+            select.addEventListener('change', () => {
+                this.updateTempConfigFromModal();
+                this.updatePreview();
+            });
+        });
+    }
+    
+    updateTempConfigFromModal() {
+        // Update baseline
+        const baselineModel = document.querySelector('input[name="baseline-model"]:checked')?.value || 'PW';
+        this.tempConfig.baseline.model = baselineModel;
+        this.tempConfig.baseline.params = {};
+        
+        document.querySelectorAll('#baseline-params .modal-param-input').forEach(input => {
+            const param = input.dataset.param;
+            if (param === 'bonus') {
+                this.tempConfig.baseline.bonusPercent = parseFloat(input.value) || 0;
+            } else {
+                this.tempConfig.baseline.params[param] = parseFloat(input.value) || 0;
+            }
+        });
+        
+        // Update simulation
+        const simulationModel = document.querySelector('input[name="simulation-model"]:checked')?.value || 'PW';
+        this.tempConfig.simulation.model = simulationModel;
+        this.tempConfig.simulation.params = {};
+        
+        document.querySelectorAll('#simulation-params .modal-param-input').forEach(input => {
+            const param = input.dataset.param;
+            if (param === 'bonus') {
+                this.tempConfig.simulation.bonusPercent = parseFloat(input.value) || 0;
+            } else {
+                this.tempConfig.simulation.params[param] = parseFloat(input.value) || 0;
+            }
+        });
+        
+        // Update writer overrides
+        this.tempConfig.writerOverrides = {};
+        const writerStats = this.calculateWriterStatistics();
+        
+        document.querySelectorAll('.writer-override-checkbox:checked').forEach(checkbox => {
+            const writer = checkbox.dataset.writer;
+            const scenario = checkbox.dataset.scenario;
+            const select = checkbox.parentElement.querySelector('.writer-model-select');
+            const model = select.value;
+            
+            if (!this.tempConfig.writerOverrides[writer]) {
+                this.tempConfig.writerOverrides[writer] = {};
+            }
+            
+            const stats = writerStats[writer];
+            this.tempConfig.writerOverrides[writer][scenario] = this.getSmartConfigForWriter(model, stats);
+        });
+    }
+    
+    getSmartConfigForWriter(model, stats) {
+        const config = {
+            model: model,
+            params: {},
+            bonusPercent: 0
+        };
+        
+        switch (model) {
+            case 'PW':
+                config.params.rate = 0.13;
+                break;
+            case 'CO':
+                config.params.cap = stats.p75;
+                config.params.fixedAmount = Math.round(stats.p75 * 0.11);
+                config.params.overageRate = 0.13;
+                break;
+            case 'FP':
+                config.params.fixedAmount = Math.round(stats.mean * 0.12);
+                break;
+            case 'HY':
+                config.params.baseFee = Math.round(stats.mean * 0.05);
+                config.params.reducedRate = 0.08;
+                break;
+            case 'DMR':
+                config.params.standardRate = 0.13;
+                config.params.threshold = stats.median;
+                config.params.lowerRate = 0.08;
+                break;
+        }
+        
+        return config;
+    }
+    
+    updatePreview() {
+        if (!this.articles || this.articles.length === 0) return;
+        
+        // Calculate costs with temp config
+        let totalBaselineCost = 0;
+        let totalSimulationCost = 0;
+        const writerImpacts = {};
+        
+        this.articles.forEach(article => {
+            const baselineConfig = this.getTempWriterConfig(article.writer, 'baseline');
+            const simulationConfig = this.getTempWriterConfig(article.writer, 'simulation');
+            
+            const baselineCost = this.calculateCost(article.wordCount, baselineConfig);
+            const simulationCost = this.calculateCost(article.wordCount, simulationConfig);
+            
+            totalBaselineCost += baselineCost;
+            totalSimulationCost += simulationCost;
+            
+            if (!writerImpacts[article.writer]) {
+                writerImpacts[article.writer] = { baseline: 0, simulation: 0 };
+            }
+            writerImpacts[article.writer].baseline += baselineCost;
+            writerImpacts[article.writer].simulation += simulationCost;
+        });
+        
+        // Update preview display
+        document.getElementById('preview-baseline-cost').textContent = `${totalBaselineCost.toFixed(2)} €`;
+        document.getElementById('preview-simulation-cost').textContent = `${totalSimulationCost.toFixed(2)} €`;
+        
+        const difference = totalSimulationCost - totalBaselineCost;
+        const diffPercent = totalBaselineCost > 0 ? (difference / totalBaselineCost) * 100 : 0;
+        const diffElement = document.getElementById('preview-difference');
+        diffElement.textContent = `${difference > 0 ? '+' : ''}${difference.toFixed(2)} € (${diffPercent > 0 ? '+' : ''}${diffPercent.toFixed(1)}%)`;
+        diffElement.parentElement.classList.toggle('positive', difference > 0);
+        diffElement.parentElement.classList.toggle('negative', difference < 0);
+        
+        // Update writer impacts
+        const impactContainer = document.getElementById('preview-writer-impact');
+        impactContainer.innerHTML = '';
+        
+        Object.entries(writerImpacts).forEach(([writer, costs]) => {
+            const change = costs.simulation - costs.baseline;
+            const changePercent = costs.baseline > 0 ? (change / costs.baseline) * 100 : 0;
+            
+            const row = document.createElement('div');
+            row.className = 'writer-impact-row';
+            row.innerHTML = `
+                <span class="name">${writer}</span>
+                <span class="change ${change > 0 ? 'positive' : 'negative'}">
+                    ${change > 0 ? '+' : ''}${change.toFixed(0)} € (${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}%)
+                </span>
+            `;
+            impactContainer.appendChild(row);
+        });
+    }
+    
+    getTempWriterConfig(writer, scenario) {
+        const override = this.tempConfig.writerOverrides[writer];
+        if (override && override[scenario]) {
+            return override[scenario];
+        }
+        return this.tempConfig[scenario];
     }
 }
 
