@@ -334,8 +334,13 @@ class PricingSimulator {
         this.configuration.writerOverrides = {};
         
         this.writers.forEach(writer => {
-            const baselineOverride = document.getElementById(`baseline-override-${writer}`).checked;
-            const simulationOverride = document.getElementById(`simulation-override-${writer}`).checked;
+            const baselineCheckbox = document.getElementById(`baseline-override-${writer}`);
+            const simulationCheckbox = document.getElementById(`simulation-override-${writer}`);
+            
+            if (!baselineCheckbox || !simulationCheckbox) return;
+            
+            const baselineOverride = baselineCheckbox.checked;
+            const simulationOverride = simulationCheckbox.checked;
             
             if (baselineOverride || simulationOverride) {
                 this.configuration.writerOverrides[writer] = {};
@@ -437,17 +442,17 @@ class PricingSimulator {
             const wordCounts = writerArticles.map(a => a.wordCount).sort((a, b) => a - b);
             
             if (wordCounts.length > 0) {
-                const mean = ss.mean(wordCounts);
-                const stdDev = wordCounts.length > 1 ? ss.standardDeviation(wordCounts) : 0;
+                const mean = this.calculateMean(wordCounts);
+                const stdDev = wordCounts.length > 1 ? this.calculateStdDev(wordCounts, mean) : 0;
                 const cv = mean > 0 ? stdDev / mean : 0;
                 
                 stats[writer] = {
                     count: wordCounts.length,
                     mean: Math.round(mean),
-                    median: Math.round(ss.median(wordCounts)),
+                    median: Math.round(this.calculateMedian(wordCounts)),
                     cv: cv,
-                    p25: Math.round(ss.quantile(wordCounts, 0.25)),
-                    p75: Math.round(ss.quantile(wordCounts, 0.75)),
+                    p25: Math.round(this.calculatePercentile(wordCounts, 0.25)),
+                    p75: Math.round(this.calculatePercentile(wordCounts, 0.75)),
                     stdDev: stdDev
                 };
             }
@@ -455,13 +460,52 @@ class PricingSimulator {
         
         return stats;
     }
+    
+    calculateMean(values) {
+        return values.reduce((sum, val) => sum + val, 0) / values.length;
+    }
+    
+    calculateMedian(sortedValues) {
+        const mid = Math.floor(sortedValues.length / 2);
+        return sortedValues.length % 2 !== 0
+            ? sortedValues[mid]
+            : (sortedValues[mid - 1] + sortedValues[mid]) / 2;
+    }
+    
+    calculateStdDev(values, mean) {
+        const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+        const avgSquareDiff = this.calculateMean(squareDiffs);
+        return Math.sqrt(avgSquareDiff);
+    }
+    
+    calculatePercentile(sortedValues, percentile) {
+        const index = percentile * (sortedValues.length - 1);
+        const lower = Math.floor(index);
+        const upper = Math.ceil(index);
+        const weight = index % 1;
+        
+        if (lower === upper) {
+            return sortedValues[lower];
+        }
+        
+        return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+    }
 
     updateDashboard() {
         const totalArticles = this.articles.length;
-        const wordCounts = this.articles.map(a => a.wordCount);
-        const avgWordCount = Math.round(ss.mean(wordCounts));
-        const medianWordCount = Math.round(ss.median(wordCounts));
-        const stdDev = ss.standardDeviation(wordCounts);
+        
+        if (totalArticles === 0) {
+            document.getElementById('totalArticles').textContent = '0';
+            document.getElementById('avgWordCount').textContent = '-';
+            document.getElementById('medianWordCount').textContent = '-';
+            document.getElementById('globalCV').textContent = '-';
+            return;
+        }
+        
+        const wordCounts = this.articles.map(a => a.wordCount).sort((a, b) => a - b);
+        const avgWordCount = Math.round(this.calculateMean(wordCounts));
+        const medianWordCount = Math.round(this.calculateMedian(wordCounts));
+        const stdDev = this.calculateStdDev(wordCounts, this.calculateMean(wordCounts));
         const globalCV = avgWordCount > 0 ? (stdDev / avgWordCount).toFixed(2) : '0.00';
         
         document.getElementById('totalArticles').textContent = totalArticles.toLocaleString('fr-FR');
