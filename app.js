@@ -16,42 +16,55 @@ class PricingSimulator {
         const dropZone = document.getElementById('dropZone');
         const csvFile = document.getElementById('csvFile');
         
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
+        if (dropZone) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'text/csv') {
+                    this.processCSV(file);
+                }
+            });
+        }
         
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-        
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type === 'text/csv') {
-                this.processCSV(file);
-            }
-        });
-        
-        csvFile.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                this.processCSV(file);
-            }
-        });
+        if (csvFile) {
+            csvFile.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.processCSV(file);
+                }
+            });
+        }
 
-        document.getElementById('globalBaselineModel').addEventListener('change', (e) => {
-            this.updateModelParams('globalBaselineParams', e.target.value);
-        });
+        const globalBaselineModel = document.getElementById('globalBaselineModel');
+        if (globalBaselineModel) {
+            globalBaselineModel.addEventListener('change', (e) => {
+                this.updateModelParams('globalBaselineParams', e.target.value);
+            });
+        }
         
-        document.getElementById('globalSimulationModel').addEventListener('change', (e) => {
-            this.updateModelParams('globalSimulationParams', e.target.value);
-        });
+        const globalSimulationModel = document.getElementById('globalSimulationModel');
+        if (globalSimulationModel) {
+            globalSimulationModel.addEventListener('change', (e) => {
+                this.updateModelParams('globalSimulationParams', e.target.value);
+            });
+        }
 
-        document.getElementById('applyConfig').addEventListener('click', () => {
-            this.applyConfiguration();
-        });
+        const applyConfig = document.getElementById('applyConfig');
+        if (applyConfig) {
+            applyConfig.addEventListener('click', () => {
+                this.applyConfiguration();
+            });
+        }
 
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -59,9 +72,12 @@ class PricingSimulator {
             });
         });
 
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            this.filterDataGrid(e.target.value);
-        });
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.filterDataGrid(e.target.value);
+            });
+        }
 
         this.updateModelParams('globalBaselineParams', 'PW');
         this.updateModelParams('globalSimulationParams', 'PW');
@@ -139,6 +155,7 @@ class PricingSimulator {
 
     updateModelParams(containerId, model) {
         const container = document.getElementById(containerId);
+        if (!container) return;
         container.innerHTML = '';
         
         const params = this.getModelParams(model);
