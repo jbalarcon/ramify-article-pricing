@@ -769,11 +769,15 @@ body {
 }
 
 .writer-config-list {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     border: 1px solid var(--gray-200);
     border-radius: 8px;
     padding: 12px;
+}
+
+.writer-config-item {
+    margin-bottom: 12px;
 }
 
 .writer-config-row {
@@ -781,10 +785,14 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    margin-bottom: 8px;
     background: var(--white);
     border: 1px solid var(--gray-200);
     border-radius: 6px;
+}
+
+.writer-params-container {
+    margin-left: 24px;
+    margin-top: 8px;
 }
 
 .writer-config-row:hover {

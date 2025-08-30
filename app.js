@@ -334,32 +334,63 @@ class PricingSimulator {
         });
     }
 
-    updateWriterModelParams(writer, scenario, model, stats) {
+    updateWriterModelParams(writer, scenario, model, statsParam) {
         const container = document.getElementById(`${scenario}-params-${writer}`);
+        if (!container) return;
+        
         container.innerHTML = '';
         
-        let params = this.getModelParams(model);
+        // Get stats if not provided
+        let stats = statsParam;
+        if (!stats) {
+            const writerStats = this.calculateWriterStatistics();
+            stats = writerStats[writer];
+        }
         
+        let params = this.getModelParamsForModal(model);
+        
+        // Adjust defaults for CO model based on writer's P75
         if (model === 'CO' && stats) {
             params = [
-                { label: 'Montant Fixe (€)', key: 'fixedAmount', defaultValue: Math.round(stats.p75 * 0.13), step: 1 },
-                { label: 'Cap (mots)', key: 'cap', defaultValue: stats.p75, step: 100 },
-                { label: 'Tarif Dépassement (€/mot)', key: 'overageRate', defaultValue: 0.13, step: 0.001 }
+                { label: 'Prix fixe (€)', key: 'fixedAmount', defaultValue: Math.round(stats.p75 * 0.11), step: 1, help: 'Montant pour articles normaux' },
+                { label: 'Plafond (mots)', key: 'cap', defaultValue: stats.p75, step: 100, help: `Basé sur votre P75: ${stats.p75} mots` },
+                { label: 'Tarif dépassement (€/mot)', key: 'overageRate', defaultValue: 0.13, step: 0.001, help: 'Prix au-delà du plafond' }
             ];
         }
         
+        const paramGroup = document.createElement('div');
+        paramGroup.style.padding = '12px';
+        paramGroup.style.background = '#f9fafb';
+        paramGroup.style.borderRadius = '6px';
+        paramGroup.style.marginTop = '8px';
+        
         params.forEach(param => {
-            const group = document.createElement('div');
-            group.className = 'form-group';
-            group.innerHTML = `
-                <label>${param.label}:</label>
+            const field = document.createElement('div');
+            field.style.marginBottom = '12px';
+            field.innerHTML = `
+                <label style="display: block; font-size: 12px; margin-bottom: 4px; color: #6b7280;">${param.label}</label>
                 <input type="number" 
+                       data-scenario="${scenario}"
+                       data-writer="${writer}"
                        data-param="${param.key}" 
                        value="${param.defaultValue}" 
                        step="${param.step || 0.01}"
-                       min="0">
+                       min="0"
+                       style="width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;"
+                       class="writer-param-input">
+                ${param.help ? `<div style="font-size: 11px; color: #9ca3af; margin-top: 2px;">${param.help}</div>` : ''}
             `;
-            container.appendChild(group);
+            paramGroup.appendChild(field);
+        });
+        
+        container.appendChild(paramGroup);
+        
+        // Add change listeners
+        container.querySelectorAll('.writer-param-input').forEach(input => {
+            input.addEventListener('input', () => {
+                this.updateTempConfigFromModal();
+                this.updatePreview();
+            });
         });
     }
 
@@ -937,45 +968,51 @@ class PricingSimulator {
             
             // Baseline config
             const baselineRow = document.createElement('div');
-            baselineRow.className = 'writer-config-row';
+            baselineRow.className = 'writer-config-item';
             baselineRow.innerHTML = `
-                <div>
-                    <div class="writer-name-label">${writer}</div>
-                    <div class="writer-stats-label">CV: ${stats.cv.toFixed(2)} | Moy: ${stats.mean} mots</div>
+                <div class="writer-config-row">
+                    <div>
+                        <div class="writer-name-label">${writer}</div>
+                        <div class="writer-stats-label">CV: ${stats.cv.toFixed(2)} | Moy: ${stats.mean} mots</div>
+                    </div>
+                    <div class="writer-config-control">
+                        <input type="checkbox" class="writer-override-checkbox" 
+                               data-scenario="baseline" data-writer="${writer}">
+                        <select class="writer-model-select" data-scenario="baseline" data-writer="${writer}" disabled>
+                            <option value="PW">Tarif au volume</option>
+                            <option value="FP">Prix fixe</option>
+                            <option value="HY">Hybride</option>
+                            <option value="DMR">Dégressif</option>
+                            <option value="CO">Plafonné</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="writer-config-control">
-                    <input type="checkbox" class="writer-override-checkbox" 
-                           data-scenario="baseline" data-writer="${writer}">
-                    <select class="writer-model-select" data-scenario="baseline" data-writer="${writer}" disabled>
-                        <option value="PW">Tarif au volume</option>
-                        <option value="FP">Prix fixe</option>
-                        <option value="HY">Hybride</option>
-                        <option value="DMR">Dégressif</option>
-                        <option value="CO">Plafonné</option>
-                    </select>
-                </div>
+                <div class="writer-params-container" id="baseline-params-${writer}" style="display: none;"></div>
             `;
             baselineContainer.appendChild(baselineRow);
             
             // Simulation config
             const simulationRow = document.createElement('div');
-            simulationRow.className = 'writer-config-row';
+            simulationRow.className = 'writer-config-item';
             simulationRow.innerHTML = `
-                <div>
-                    <div class="writer-name-label">${writer}</div>
-                    <div class="writer-stats-label">CV: ${stats.cv.toFixed(2)} | P75: ${stats.p75} mots</div>
+                <div class="writer-config-row">
+                    <div>
+                        <div class="writer-name-label">${writer}</div>
+                        <div class="writer-stats-label">CV: ${stats.cv.toFixed(2)} | P75: ${stats.p75} mots</div>
+                    </div>
+                    <div class="writer-config-control">
+                        <input type="checkbox" class="writer-override-checkbox" 
+                               data-scenario="simulation" data-writer="${writer}">
+                        <select class="writer-model-select" data-scenario="simulation" data-writer="${writer}" disabled>
+                            <option value="PW">Tarif au volume</option>
+                            <option value="FP">Prix fixe</option>
+                            <option value="HY">Hybride</option>
+                            <option value="DMR">Dégressif</option>
+                            <option value="CO" ${stats.cv < 0.3 ? 'selected' : ''}>Plafonné</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="writer-config-control">
-                    <input type="checkbox" class="writer-override-checkbox" 
-                           data-scenario="simulation" data-writer="${writer}">
-                    <select class="writer-model-select" data-scenario="simulation" data-writer="${writer}" disabled>
-                        <option value="PW">Tarif au volume</option>
-                        <option value="FP">Prix fixe</option>
-                        <option value="HY">Hybride</option>
-                        <option value="DMR">Dégressif</option>
-                        <option value="CO" ${stats.cv < 0.3 ? 'selected' : ''}>Plafonné</option>
-                    </select>
-                </div>
+                <div class="writer-params-container" id="simulation-params-${writer}" style="display: none;"></div>
             `;
             simulationContainer.appendChild(simulationRow);
         });
@@ -983,15 +1020,30 @@ class PricingSimulator {
         // Add change listeners
         document.querySelectorAll('.writer-override-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
+                const writer = e.target.dataset.writer;
+                const scenario = e.target.dataset.scenario;
                 const select = e.target.parentElement.querySelector('.writer-model-select');
+                const paramsContainer = document.getElementById(`${scenario}-params-${writer}`);
+                
                 select.disabled = !e.target.checked;
+                
+                if (e.target.checked) {
+                    paramsContainer.style.display = 'block';
+                    this.updateWriterModelParams(writer, scenario, select.value);
+                } else {
+                    paramsContainer.style.display = 'none';
+                }
+                
                 this.updateTempConfigFromModal();
                 this.updatePreview();
             });
         });
         
         document.querySelectorAll('.writer-model-select').forEach(select => {
-            select.addEventListener('change', () => {
+            select.addEventListener('change', (e) => {
+                const writer = e.target.dataset.writer;
+                const scenario = e.target.dataset.scenario;
+                this.updateWriterModelParams(writer, scenario, e.target.value);
                 this.updateTempConfigFromModal();
                 this.updatePreview();
             });
@@ -1029,7 +1081,6 @@ class PricingSimulator {
         
         // Update writer overrides
         this.tempConfig.writerOverrides = {};
-        const writerStats = this.calculateWriterStatistics();
         
         document.querySelectorAll('.writer-override-checkbox:checked').forEach(checkbox => {
             const writer = checkbox.dataset.writer;
@@ -1041,8 +1092,27 @@ class PricingSimulator {
                 this.tempConfig.writerOverrides[writer] = {};
             }
             
-            const stats = writerStats[writer];
-            this.tempConfig.writerOverrides[writer][scenario] = this.getSmartConfigForWriter(model, stats);
+            // Get parameters from inputs
+            const config = {
+                model: model,
+                params: {},
+                bonusPercent: 0
+            };
+            
+            // Read writer-specific parameters
+            document.querySelectorAll(`.writer-param-input[data-writer="${writer}"][data-scenario="${scenario}"]`).forEach(input => {
+                const param = input.dataset.param;
+                config.params[param] = parseFloat(input.value) || 0;
+            });
+            
+            // If no params found (shouldn't happen), use smart defaults
+            if (Object.keys(config.params).length === 0) {
+                const writerStats = this.calculateWriterStatistics();
+                const stats = writerStats[writer];
+                config = this.getSmartConfigForWriter(model, stats);
+            }
+            
+            this.tempConfig.writerOverrides[writer][scenario] = config;
         });
     }
     
