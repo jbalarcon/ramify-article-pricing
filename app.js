@@ -829,10 +829,56 @@ class PricingSimulator {
         const modal = document.getElementById('configModal');
         if (modal) {
             modal.style.display = 'flex';
+            
+            // Copy current configuration to temp config
+            this.tempConfig = {
+                baseline: { ...this.configuration.globalDefaults.baseline },
+                simulation: { ...this.configuration.globalDefaults.simulation },
+                writerOverrides: JSON.parse(JSON.stringify(this.configuration.writerOverrides))
+            };
+            
+            // Restore the configuration in the modal
+            this.restoreModalConfiguration();
             this.populateModalWriterConfigs();
-            this.updateModalModelParams('baseline', 'PW');
-            this.updateModalModelParams('simulation', 'PW');
             this.updatePreview();
+        }
+    }
+    
+    restoreModalConfiguration() {
+        // Restore baseline model and parameters
+        const baselineModel = this.configuration.globalDefaults.baseline.model;
+        const baselineRadio = document.getElementById(`baseline-${baselineModel}`);
+        if (baselineRadio) {
+            baselineRadio.checked = true;
+            this.updateModalModelParams('baseline', baselineModel);
+            
+            // Restore baseline parameters
+            Object.entries(this.configuration.globalDefaults.baseline.params).forEach(([key, value]) => {
+                const input = document.querySelector(`#baseline-params .modal-param-input[data-param="${key}"]`);
+                if (input) input.value = value;
+            });
+            
+            // Restore baseline bonus
+            const baselineBonus = document.querySelector(`#baseline-params .modal-param-input[data-param="bonus"]`);
+            if (baselineBonus) baselineBonus.value = this.configuration.globalDefaults.baseline.bonusPercent || 0;
+        }
+        
+        // Restore simulation model and parameters
+        const simulationModel = this.configuration.globalDefaults.simulation.model;
+        const simulationRadio = document.getElementById(`simulation-${simulationModel}`);
+        if (simulationRadio) {
+            simulationRadio.checked = true;
+            this.updateModalModelParams('simulation', simulationModel);
+            
+            // Restore simulation parameters
+            Object.entries(this.configuration.globalDefaults.simulation.params).forEach(([key, value]) => {
+                const input = document.querySelector(`#simulation-params .modal-param-input[data-param="${key}"]`);
+                if (input) input.value = value;
+            });
+            
+            // Restore simulation bonus
+            const simulationBonus = document.querySelector(`#simulation-params .modal-param-input[data-param="bonus"]`);
+            if (simulationBonus) simulationBonus.value = this.configuration.globalDefaults.simulation.bonusPercent || 0;
         }
     }
     
@@ -840,6 +886,12 @@ class PricingSimulator {
         const modal = document.getElementById('configModal');
         if (modal) {
             modal.style.display = 'none';
+            // Restore temp config to original values (in case of cancel)
+            this.tempConfig = {
+                baseline: { ...this.configuration.globalDefaults.baseline },
+                simulation: { ...this.configuration.globalDefaults.simulation },
+                writerOverrides: JSON.parse(JSON.stringify(this.configuration.writerOverrides))
+            };
         }
     }
     
@@ -965,6 +1017,8 @@ class PricingSimulator {
         
         Array.from(this.writers).sort().forEach(writer => {
             const stats = writerStats[writer];
+            const hasBaselineOverride = this.configuration.writerOverrides[writer]?.baseline;
+            const hasSimulationOverride = this.configuration.writerOverrides[writer]?.simulation;
             
             // Baseline config
             const baselineRow = document.createElement('div');
@@ -977,13 +1031,15 @@ class PricingSimulator {
                     </div>
                     <div class="writer-config-control">
                         <input type="checkbox" class="writer-override-checkbox" 
-                               data-scenario="baseline" data-writer="${writer}">
-                        <select class="writer-model-select" data-scenario="baseline" data-writer="${writer}" disabled>
-                            <option value="PW">Tarif au volume</option>
-                            <option value="FP">Prix fixe</option>
-                            <option value="HY">Hybride</option>
-                            <option value="DMR">Dégressif</option>
-                            <option value="CO">Plafonné</option>
+                               data-scenario="baseline" data-writer="${writer}"
+                               ${hasBaselineOverride ? 'checked' : ''}>
+                        <select class="writer-model-select" data-scenario="baseline" data-writer="${writer}" 
+                                ${hasBaselineOverride ? '' : 'disabled'}>
+                            <option value="PW" ${hasBaselineOverride && hasBaselineOverride.model === 'PW' ? 'selected' : ''}>Tarif au volume</option>
+                            <option value="FP" ${hasBaselineOverride && hasBaselineOverride.model === 'FP' ? 'selected' : ''}>Prix fixe</option>
+                            <option value="HY" ${hasBaselineOverride && hasBaselineOverride.model === 'HY' ? 'selected' : ''}>Hybride</option>
+                            <option value="DMR" ${hasBaselineOverride && hasBaselineOverride.model === 'DMR' ? 'selected' : ''}>Dégressif</option>
+                            <option value="CO" ${hasBaselineOverride && hasBaselineOverride.model === 'CO' ? 'selected' : ''}>Plafonné</option>
                         </select>
                     </div>
                 </div>
@@ -1002,19 +1058,56 @@ class PricingSimulator {
                     </div>
                     <div class="writer-config-control">
                         <input type="checkbox" class="writer-override-checkbox" 
-                               data-scenario="simulation" data-writer="${writer}">
-                        <select class="writer-model-select" data-scenario="simulation" data-writer="${writer}" disabled>
-                            <option value="PW">Tarif au volume</option>
-                            <option value="FP">Prix fixe</option>
-                            <option value="HY">Hybride</option>
-                            <option value="DMR">Dégressif</option>
-                            <option value="CO" ${stats.cv < 0.3 ? 'selected' : ''}>Plafonné</option>
+                               data-scenario="simulation" data-writer="${writer}"
+                               ${hasSimulationOverride ? 'checked' : ''}>
+                        <select class="writer-model-select" data-scenario="simulation" data-writer="${writer}" 
+                                ${hasSimulationOverride ? '' : 'disabled'}>
+                            <option value="PW" ${hasSimulationOverride ? (hasSimulationOverride.model === 'PW' ? 'selected' : '') : ''}>Tarif au volume</option>
+                            <option value="FP" ${hasSimulationOverride ? (hasSimulationOverride.model === 'FP' ? 'selected' : '') : ''}>Prix fixe</option>
+                            <option value="HY" ${hasSimulationOverride ? (hasSimulationOverride.model === 'HY' ? 'selected' : '') : ''}>Hybride</option>
+                            <option value="DMR" ${hasSimulationOverride ? (hasSimulationOverride.model === 'DMR' ? 'selected' : '') : ''}>Dégressif</option>
+                            <option value="CO" ${hasSimulationOverride ? (hasSimulationOverride.model === 'CO' ? 'selected' : '') : (stats.cv < 0.3 ? 'selected' : '')}>Plafonné</option>
                         </select>
                     </div>
                 </div>
                 <div class="writer-params-container" id="simulation-params-${writer}" style="display: none;"></div>
             `;
             simulationContainer.appendChild(simulationRow);
+        });
+        
+        // Restore writer override parameters
+        Object.entries(this.configuration.writerOverrides).forEach(([writer, overrides]) => {
+            if (overrides.baseline) {
+                const container = document.getElementById(`baseline-params-${writer}`);
+                if (container) {
+                    container.style.display = 'block';
+                    this.updateWriterModelParams(writer, 'baseline', overrides.baseline.model);
+                    
+                    // Restore parameter values after a short delay to ensure inputs exist
+                    setTimeout(() => {
+                        Object.entries(overrides.baseline.params).forEach(([key, value]) => {
+                            const input = document.querySelector(`.writer-param-input[data-writer="${writer}"][data-scenario="baseline"][data-param="${key}"]`);
+                            if (input) input.value = value;
+                        });
+                    }, 50);
+                }
+            }
+            
+            if (overrides.simulation) {
+                const container = document.getElementById(`simulation-params-${writer}`);
+                if (container) {
+                    container.style.display = 'block';
+                    this.updateWriterModelParams(writer, 'simulation', overrides.simulation.model);
+                    
+                    // Restore parameter values after a short delay to ensure inputs exist
+                    setTimeout(() => {
+                        Object.entries(overrides.simulation.params).forEach(([key, value]) => {
+                            const input = document.querySelector(`.writer-param-input[data-writer="${writer}"][data-scenario="simulation"][data-param="${key}"]`);
+                            if (input) input.value = value;
+                        });
+                    }, 50);
+                }
+            }
         });
         
         // Add change listeners
