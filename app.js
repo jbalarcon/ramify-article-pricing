@@ -45,10 +45,27 @@ class PricingSimulator {
             });
         }
 
-        // Initialize wizard navigation
-        this.initializeWizard();
+        const globalBaselineModel = document.getElementById('globalBaselineModel');
+        if (globalBaselineModel) {
+            globalBaselineModel.addEventListener('change', (e) => {
+                this.updateModelParams('globalBaselineParams', e.target.value);
+            });
+        }
+        
+        const globalSimulationModel = document.getElementById('globalSimulationModel');
+        if (globalSimulationModel) {
+            globalSimulationModel.addEventListener('change', (e) => {
+                this.updateModelParams('globalSimulationParams', e.target.value);
+            });
+        }
 
-        // Tab navigation
+        const applyConfig = document.getElementById('applyConfig');
+        if (applyConfig) {
+            applyConfig.addEventListener('click', () => {
+                this.applyConfiguration();
+            });
+        }
+
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 this.switchTab(e.target.dataset.tab);
@@ -61,191 +78,9 @@ class PricingSimulator {
                 this.filterDataGrid(e.target.value);
             });
         }
-    }
 
-    initializeWizard() {
-        // Strategy selection
-        document.querySelectorAll('.strategy-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                this.selectedStrategy = card.dataset.strategy;
-            });
-        });
-
-        // Model selection
-        document.querySelectorAll('.model-card').forEach(card => {
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                const radio = card.querySelector('.model-radio');
-                if (radio) radio.checked = true;
-                this.selectedModel = card.dataset.model;
-                this.showModelParams(this.selectedModel);
-            });
-        });
-
-        // Navigation buttons
-        const nextToModels = document.getElementById('nextToModels');
-        if (nextToModels) {
-            nextToModels.addEventListener('click', () => {
-                this.goToStep('models');
-                this.applyStrategyPreset();
-            });
-        }
-
-        const backToStrategy = document.getElementById('backToStrategy');
-        if (backToStrategy) {
-            backToStrategy.addEventListener('click', () => this.goToStep('strategy'));
-        }
-
-        const nextToWriters = document.getElementById('nextToWriters');
-        if (nextToWriters) {
-            nextToWriters.addEventListener('click', () => {
-                this.goToStep('writers');
-                this.populateWriterRecommendations();
-            });
-        }
-
-        const backToModels = document.getElementById('backToModels');
-        if (backToModels) {
-            backToModels.addEventListener('click', () => this.goToStep('models'));
-        }
-
-        const applyConfig = document.getElementById('applyConfig');
-        if (applyConfig) {
-            applyConfig.addEventListener('click', () => {
-                this.applyWizardConfiguration();
-            });
-        }
-
-        // Wizard tabs
-        document.querySelectorAll('.wizard-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const step = tab.dataset.step;
-                if (tab.classList.contains('completed') || tab.classList.contains('active')) {
-                    this.goToStep(step);
-                }
-            });
-        });
-    }
-
-    goToStep(step) {
-        // Update tabs
-        document.querySelectorAll('.wizard-tab').forEach(tab => {
-            tab.classList.remove('active');
-            if (tab.dataset.step === step) {
-                tab.classList.add('active');
-            }
-        });
-
-        // Update content
-        document.querySelectorAll('.wizard-step').forEach(content => {
-            content.style.display = 'none';
-        });
-        const stepContent = document.getElementById(`${step}-step`);
-        if (stepContent) {
-            stepContent.style.display = 'block';
-        }
-
-        // Mark previous steps as completed
-        const steps = ['strategy', 'models', 'writers'];
-        const currentIndex = steps.indexOf(step);
-        steps.forEach((s, index) => {
-            const tab = document.querySelector(`.wizard-tab[data-step="${s}"]`);
-            if (tab && index < currentIndex) {
-                tab.classList.add('completed');
-            }
-        });
-    }
-
-    applyStrategyPreset() {
-        if (!this.selectedStrategy) this.selectedStrategy = 'optimize';
-        
-        if (this.selectedStrategy === 'optimize') {
-            // Pre-select Cap+Overage model for optimization
-            const coCard = document.querySelector('.model-card[data-model="CO"]');
-            if (coCard) {
-                coCard.click();
-            }
-        } else if (this.selectedStrategy === 'quality') {
-            // Pre-select Per-Word with bonus
-            const pwCard = document.querySelector('.model-card[data-model="PW"]');
-            if (pwCard) {
-                pwCard.click();
-            }
-        }
-    }
-
-    showModelParams(model) {
-        const container = document.getElementById('modelParamsContainer');
-        const section = document.getElementById('globalModelParams');
-        
-        if (!container || !section) return;
-        
-        section.style.display = 'block';
-        container.innerHTML = '';
-        
-        const params = this.getModelParamsWithLabels(model);
-        params.forEach(param => {
-            const group = document.createElement('div');
-            group.className = 'form-group';
-            group.innerHTML = `
-                <label>${param.label}:</label>
-                <input type="number" 
-                       data-param="${param.key}" 
-                       value="${param.defaultValue}" 
-                       step="${param.step || 0.01}"
-                       min="0"
-                       class="global-param-input">
-                ${param.hint ? `<small class="param-hint">${param.hint}</small>` : ''}
-            `;
-            container.appendChild(group);
-        });
-
-        // Add quality bonus for quality strategy
-        if (this.selectedStrategy === 'quality') {
-            const bonusGroup = document.createElement('div');
-            bonusGroup.className = 'form-group';
-            bonusGroup.innerHTML = `
-                <label>Bonus Qualité (%):</label>
-                <input type="number" 
-                       data-param="bonus" 
-                       value="5" 
-                       step="0.5"
-                       min="0"
-                       max="20"
-                       class="global-param-input">
-                <small class="param-hint">Augmentation pour récompenser la qualité</small>
-            `;
-            container.appendChild(bonusGroup);
-        }
-    }
-
-    getModelParamsWithLabels(model) {
-        const params = {
-            'PW': [
-                { label: 'Tarif par mot', key: 'rate', defaultValue: 0.13, step: 0.001, hint: 'Prix en € pour chaque mot' }
-            ],
-            'FP': [
-                { label: 'Prix fixe par article', key: 'fixedAmount', defaultValue: 100, step: 1, hint: 'Montant fixe peu importe la longueur' }
-            ],
-            'HY': [
-                { label: 'Frais de recherche', key: 'baseFee', defaultValue: 50, step: 1, hint: 'Coût de base pour la recherche' },
-                { label: 'Tarif par mot', key: 'reducedRate', defaultValue: 0.08, step: 0.001, hint: 'Tarif réduit pour l\'écriture' }
-            ],
-            'DMR': [
-                { label: 'Tarif normal', key: 'standardRate', defaultValue: 0.13, step: 0.001, hint: 'Prix par mot jusqu\'au seuil' },
-                { label: 'Seuil (mots)', key: 'threshold', defaultValue: 1000, step: 100, hint: 'Nombre de mots avant réduction' },
-                { label: 'Tarif réduit', key: 'lowerRate', defaultValue: 0.08, step: 0.001, hint: 'Prix par mot après le seuil' }
-            ],
-            'CO': [
-                { label: 'Prix jusqu\'au plafond', key: 'fixedAmount', defaultValue: 500, step: 1, hint: 'Montant fixe pour articles normaux' },
-                { label: 'Plafond (mots)', key: 'cap', defaultValue: 5000, step: 100, hint: 'Limite avant tarif supplémentaire' },
-                { label: 'Tarif dépassement', key: 'overageRate', defaultValue: 0.13, step: 0.001, hint: 'Prix par mot au-delà du plafond' }
-            ]
-        };
-        return params[model] || [];
+        this.updateModelParams('globalBaselineParams', 'PW');
+        this.updateModelParams('globalSimulationParams', 'PW');
     }
 
     processCSV(file) {
@@ -256,7 +91,7 @@ class PricingSimulator {
                     this.parseArticles(results.data);
                     this.showFeedback('success', `✓ ${this.articles.length} articles importés avec succès`);
                     document.getElementById('configSection').style.display = 'block';
-                    // Don't auto-populate here - wait for wizard navigation
+                    this.populateWriterConfigs();
                     this.calculateAndDisplay();
                 } catch (error) {
                     this.showFeedback('error', `✗ Erreur lors de l'import: ${error.message}`);
@@ -365,111 +200,102 @@ class PricingSimulator {
         return params[model] || [];
     }
 
-    getDefaultParamsForModel(model) {
-        const defaults = {
-            'PW': { rate: 0.13 },
-            'FP': { fixedAmount: 100 },
-            'HY': { baseFee: 50, reducedRate: 0.08 },
-            'DMR': { standardRate: 0.13, threshold: 1000, lowerRate: 0.08 },
-            'CO': { fixedAmount: 500, cap: 5000, overageRate: 0.13 }
-        };
-        return defaults[model] || {}; 
-    }
-
     populateWriterConfigs() {
-        // Old method - kept for compatibility but now called from populateWriterRecommendations
-        this.populateWriterRecommendations();
-    }
-
-    populateWriterRecommendations() {
-        const container = document.getElementById('writerRecommendations');
-        if (!container) return;
-        
+        const container = document.getElementById('writerConfigs');
         container.innerHTML = '';
+        
         const writerStats = this.calculateWriterStatistics();
         
-        // Group writers by recommendation
-        const consistentWriters = [];
-        const variableWriters = [];
-        const averageWriters = [];
-        
-        this.writers.forEach(writer => {
+        Array.from(this.writers).sort().forEach(writer => {
             const stats = writerStats[writer];
-            if (stats.cv < 0.25) {
-                consistentWriters.push({ writer, stats });
-            } else if (stats.cv > 0.45) {
-                variableWriters.push({ writer, stats });
-            } else {
-                averageWriters.push({ writer, stats });
-            }
-        });
-
-        // Create groups
-        if (consistentWriters.length > 0) {
-            this.createWriterGroup(container, '🎯 Rédacteurs réguliers', consistentWriters, 'CO', 
-                'Ces rédacteurs ont une production stable. Un prix plafonné est recommandé.');
-        }
-        
-        if (variableWriters.length > 0) {
-            this.createWriterGroup(container, '📈 Rédacteurs variables', variableWriters, 'PW',
-                'Ces rédacteurs ont une production variable. Un tarif au volume est recommandé.');
-        }
-        
-        if (averageWriters.length > 0) {
-            this.createWriterGroup(container, '⚖️ Rédacteurs moyens', averageWriters, 'HY',
-                'Ces rédacteurs ont une variabilité modérée. Un modèle hybride peut convenir.');
-        }
-    }
-
-    createWriterGroup(container, title, writers, recommendedModel, description) {
-        const group = document.createElement('div');
-        group.className = 'writer-recommendation-group';
-        
-        group.innerHTML = `
-            <h4>
-                ${title}
-                <span class="recommendation-badge">${writers.length} rédacteur${writers.length > 1 ? 's' : ''}</span>
-            </h4>
-            <p style="font-size: 13px; color: #6B7280; margin-bottom: 12px;">${description}</p>
-        `;
-        
-        writers.forEach(({ writer, stats }) => {
-            const item = document.createElement('div');
-            item.className = 'writer-item';
-            
-            // Calculate suggested parameters for CO model
-            let suggestedParams = '';
-            if (recommendedModel === 'CO') {
-                const suggestedCap = stats.p75;
-                const suggestedFixed = Math.round(suggestedCap * 0.11); // Slightly lower than average rate
-                suggestedParams = `(Plafond suggéré: ${suggestedCap} mots, ${suggestedFixed}€)`;
-            }
-            
-            item.innerHTML = `
-                <div class="writer-info">
-                    <div class="writer-name">${writer}</div>
-                    <div class="writer-stats">
-                        CV: ${stats.cv.toFixed(2)} | 
-                        Moyenne: ${stats.mean} mots | 
-                        P75: ${stats.p75} mots
-                        ${suggestedParams}
+            const config = document.createElement('div');
+            config.className = 'writer-config-item';
+            config.innerHTML = `
+                <div class="writer-name">${writer}</div>
+                <div style="font-size: 12px; color: #6B7280; margin-bottom: 12px;">
+                    CV: ${stats.cv.toFixed(2)} | P75: ${stats.p75} mots
+                </div>
+                <div class="config-group">
+                    <h4>Baseline</h4>
+                    <div class="override-checkbox">
+                        <input type="checkbox" id="baseline-override-${writer}" data-writer="${writer}" data-scenario="baseline">
+                        <label for="baseline-override-${writer}">Personnaliser</label>
+                    </div>
+                    <div id="baseline-config-${writer}" style="display: none;">
+                        <div class="form-group">
+                            <label>Modèle:</label>
+                            <select data-writer="${writer}" data-scenario="baseline" class="writer-model-select">
+                                <option value="PW">Par Mot (PW)</option>
+                                <option value="FP">Prix Fixe (FP)</option>
+                                <option value="HY">Hybride (HY)</option>
+                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
+                                <option value="CO">Cap + Dépassement (C+O)</option>
+                            </select>
+                        </div>
+                        <div id="baseline-params-${writer}" class="model-params"></div>
+                        <div class="form-group">
+                            <label>Bonus Qualité (%):</label>
+                            <input type="number" class="writer-bonus" data-writer="${writer}" data-scenario="baseline" value="0" min="0" max="100" step="0.1">
+                        </div>
                     </div>
                 </div>
-                <div class="writer-model-select">
-                    <select data-writer="${writer}" class="writer-model-override">
-                        <option value="default">Par défaut</option>
-                        <option value="CO" ${recommendedModel === 'CO' ? 'selected' : ''}>Prix plafonné</option>
-                        <option value="PW" ${recommendedModel === 'PW' ? 'selected' : ''}>Tarif au volume</option>
-                        <option value="HY" ${recommendedModel === 'HY' ? 'selected' : ''}>Hybride</option>
-                        <option value="FP">Prix fixe</option>
-                    </select>
+                <div class="config-group">
+                    <h4>Simulation</h4>
+                    <div class="override-checkbox">
+                        <input type="checkbox" id="simulation-override-${writer}" data-writer="${writer}" data-scenario="simulation">
+                        <label for="simulation-override-${writer}">Personnaliser</label>
+                    </div>
+                    <div id="simulation-config-${writer}" style="display: none;">
+                        <div class="form-group">
+                            <label>Modèle:</label>
+                            <select data-writer="${writer}" data-scenario="simulation" class="writer-model-select">
+                                <option value="PW">Par Mot (PW)</option>
+                                <option value="FP">Prix Fixe (FP)</option>
+                                <option value="HY">Hybride (HY)</option>
+                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
+                                <option value="CO">Cap + Dépassement (C+O)</option>
+                            </select>
+                        </div>
+                        <div id="simulation-params-${writer}" class="model-params"></div>
+                        <div class="form-group">
+                            <label>Bonus Qualité (%):</label>
+                            <input type="number" class="writer-bonus" data-writer="${writer}" data-scenario="simulation" value="0" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
                 </div>
             `;
+            container.appendChild(config);
+
+            const baselineCheckbox = config.querySelector(`#baseline-override-${writer}`);
+            const simulationCheckbox = config.querySelector(`#simulation-override-${writer}`);
             
-            group.appendChild(item);
+            baselineCheckbox.addEventListener('change', (e) => {
+                const configDiv = document.getElementById(`baseline-config-${writer}`);
+                configDiv.style.display = e.target.checked ? 'block' : 'none';
+                if (e.target.checked) {
+                    this.updateModelParams(`baseline-params-${writer}`, 'PW');
+                }
+            });
+            
+            simulationCheckbox.addEventListener('change', (e) => {
+                const configDiv = document.getElementById(`simulation-config-${writer}`);
+                configDiv.style.display = e.target.checked ? 'block' : 'none';
+                if (e.target.checked) {
+                    const suggestedModel = stats.cv < 0.3 ? 'CO' : 'PW';
+                    const select = config.querySelector(`select[data-writer="${writer}"][data-scenario="simulation"]`);
+                    select.value = suggestedModel;
+                    this.updateWriterModelParams(writer, 'simulation', suggestedModel, stats);
+                }
+            });
+
+            config.querySelectorAll('.writer-model-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const writer = e.target.dataset.writer;
+                    const scenario = e.target.dataset.scenario;
+                    this.updateWriterModelParams(writer, scenario, e.target.value, stats);
+                });
+            });
         });
-        
-        container.appendChild(group);
     }
 
     updateWriterModelParams(writer, scenario, model, stats) {
@@ -502,99 +328,34 @@ class PricingSimulator {
     }
 
     applyConfiguration() {
-        // Old method - redirect to new wizard application
-        this.applyWizardConfiguration();
-    }
-
-    applyWizardConfiguration() {
-        // Get selected model and parameters from wizard
-        const selectedModel = this.selectedModel || 'PW';
-        const params = this.getDefaultParamsForModel(selectedModel);
-        let bonusPercent = this.selectedStrategy === 'quality' ? 5 : 0;
+        this.configuration.globalDefaults.baseline = this.getGlobalConfig('baseline');
+        this.configuration.globalDefaults.simulation = this.getGlobalConfig('simulation');
         
-        // Get parameters from the global model params
-        document.querySelectorAll('.global-param-input').forEach(input => {
-            const param = input.dataset.param;
-            if (param === 'bonus') {
-                bonusPercent = parseFloat(input.value) || 0;
-            } else if (param) {
-                params[param] = parseFloat(input.value) || 0;
-            }
-        });
-        
-        // Set baseline to current PW model (historical)
-        this.configuration.globalDefaults.baseline = {
-            model: 'PW',
-            params: { rate: 0.13 },
-            bonusPercent: 0
-        };
-        
-        // Set simulation based on wizard selection
-        this.configuration.globalDefaults.simulation = {
-            model: selectedModel,
-            params: params,
-            bonusPercent: bonusPercent
-        };
-        
-        // Handle writer overrides from recommendations
         this.configuration.writerOverrides = {};
-        const writerStats = this.calculateWriterStatistics();
         
-        document.querySelectorAll('.writer-model-override').forEach(select => {
-            const writer = select.dataset.writer;
-            const model = select.value;
+        this.writers.forEach(writer => {
+            const baselineCheckbox = document.getElementById(`baseline-override-${writer}`);
+            const simulationCheckbox = document.getElementById(`simulation-override-${writer}`);
             
-            if (model !== 'default') {
-                const stats = writerStats[writer];
-                this.configuration.writerOverrides[writer] = {
-                    simulation: this.getSmartConfigForWriter(model, stats)
-                };
+            if (!baselineCheckbox || !simulationCheckbox) return;
+            
+            const baselineOverride = baselineCheckbox.checked;
+            const simulationOverride = simulationCheckbox.checked;
+            
+            if (baselineOverride || simulationOverride) {
+                this.configuration.writerOverrides[writer] = {};
+                
+                if (baselineOverride) {
+                    this.configuration.writerOverrides[writer].baseline = this.getWriterConfig(writer, 'baseline');
+                }
+                
+                if (simulationOverride) {
+                    this.configuration.writerOverrides[writer].simulation = this.getWriterConfig(writer, 'simulation');
+                }
             }
         });
         
         this.calculateAndDisplay();
-        
-        // Close the configuration panel and show success
-        this.showFeedback('success', '✓ Configuration appliquée avec succès!');
-        
-        // Switch to dashboard tab
-        this.switchTab('dashboard');
-    }
-
-    getSmartConfigForWriter(model, stats) {
-        const config = {
-            model: model,
-            params: {},
-            bonusPercent: this.selectedStrategy === 'quality' ? 5 : 0
-        };
-        
-        switch (model) {
-            case 'PW':
-                config.params.rate = 0.13;
-                break;
-            case 'CO':
-                // Smart defaults based on P75
-                config.params.cap = stats.p75;
-                config.params.fixedAmount = Math.round(stats.p75 * 0.11);
-                config.params.overageRate = 0.13;
-                break;
-            case 'FP':
-                // Fixed price based on average
-                config.params.fixedAmount = Math.round(stats.mean * 0.12);
-                break;
-            case 'HY':
-                // Hybrid with reasonable defaults
-                config.params.baseFee = Math.round(stats.mean * 0.05);
-                config.params.reducedRate = 0.08;
-                break;
-            case 'DMR':
-                config.params.standardRate = 0.13;
-                config.params.threshold = stats.median;
-                config.params.lowerRate = 0.08;
-                break;
-        }
-        
-        return config;
     }
 
     getGlobalConfig(scenario) {
