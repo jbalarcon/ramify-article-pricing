@@ -355,25 +355,6 @@ class PricingSimulator {
         return config;
     }
 
-    getWriterConfig(writer, scenario) {
-        const modelSelect = document.querySelector(`select[data-writer="${writer}"][data-scenario="${scenario}"]`);
-        const bonusInput = document.querySelector(`.writer-bonus[data-writer="${writer}"][data-scenario="${scenario}"]`);
-        const paramsContainer = document.getElementById(`${scenario}-params-${writer}`);
-        
-        const config = {
-            model: modelSelect.value,
-            params: {},
-            bonusPercent: parseFloat(bonusInput.value) || 0
-        };
-        
-        paramsContainer.querySelectorAll('input').forEach(input => {
-            const param = input.dataset.param;
-            config.params[param] = parseFloat(input.value) || 0;
-        });
-        
-        return config;
-    }
-
     calculateCost(wordCount, config) {
         let modelCost = 0;
         
@@ -409,7 +390,7 @@ class PricingSimulator {
         return finalCost;
     }
 
-    getWriterConfig(writer, scenario) {
+    getWriterConfigForCalculation(writer, scenario) {
         const override = this.configuration.writerOverrides[writer];
         if (override && override[scenario]) {
             return override[scenario];
@@ -419,8 +400,8 @@ class PricingSimulator {
 
     calculateAndDisplay() {
         this.articles.forEach(article => {
-            const baselineConfig = this.getWriterConfig(article.writer, 'baseline');
-            const simulationConfig = this.getWriterConfig(article.writer, 'simulation');
+            const baselineConfig = this.getWriterConfigForCalculation(article.writer, 'baseline');
+            const simulationConfig = this.getWriterConfigForCalculation(article.writer, 'simulation');
             
             article.baselineCost = this.calculateCost(article.wordCount, baselineConfig);
             article.simulationCost = this.calculateCost(article.wordCount, simulationConfig);
@@ -556,7 +537,9 @@ class PricingSimulator {
     }
 
     updateWordCountTrendChart() {
-        const ctx = document.getElementById('wordCountTrendChart').getContext('2d');
+        const canvas = document.getElementById('wordCountTrendChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         
         const monthlyData = {};
         this.articles.forEach(article => {
@@ -617,7 +600,9 @@ class PricingSimulator {
     }
 
     updateCostComparisonChart() {
-        const ctx = document.getElementById('costComparisonChart').getContext('2d');
+        const canvas = document.getElementById('costComparisonChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         
         const writerData = [];
         this.writers.forEach(writer => {
