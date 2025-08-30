@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur de Tarification Ramify</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-statistics@7.8.3/dist/simple-statistics.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h2>Import des Données</h2>
+                <div class="file-upload-area" id="dropZone">
+                    <input type="file" id="csvFile" accept=".csv" hidden>
+                    <label for="csvFile" class="upload-label">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Glissez-déposez votre fichier CSV ici</span>
+                        <span class="upload-hint">ou cliquez pour sélectionner</span>
+                    </label>
+                </div>
+                <div id="uploadFeedback" class="feedback-message"></div>
+            </div>
+
+            <div class="sidebar-section config-section" id="configSection" style="display: none;">
+                <h2>Configuration</h2>
+                
+                <div class="config-subsection">
+                    <h3>Paramètres Globaux</h3>
+                    
+                    <div class="config-group">
+                        <h4>Baseline (Historique)</h4>
+                        <div class="form-group">
+                            <label>Modèle:</label>
+                            <select id="globalBaselineModel">
+                                <option value="PW">Par Mot (PW)</option>
+                                <option value="FP">Prix Fixe (FP)</option>
+                                <option value="HY">Hybride (HY)</option>
+                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
+                                <option value="CO">Cap + Dépassement (C+O)</option>
+                            </select>
+                        </div>
+                        <div id="globalBaselineParams" class="model-params"></div>
+                        <div class="form-group">
+                            <label>Bonus Qualité (%):</label>
+                            <input type="number" id="globalBaselineBonus" value="0" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <h4>Simulation</h4>
+                        <div class="form-group">
+                            <label>Modèle:</label>
+                            <select id="globalSimulationModel">
+                                <option value="PW">Par Mot (PW)</option>
+                                <option value="FP">Prix Fixe (FP)</option>
+                                <option value="HY">Hybride (HY)</option>
+                                <option value="DMR">Taux Marginal Décroissant (DMR)</option>
+                                <option value="CO">Cap + Dépassement (C+O)</option>
+                            </select>
+                        </div>
+                        <div id="globalSimulationParams" class="model-params"></div>
+                        <div class="form-group">
+                            <label>Bonus Qualité (%):</label>
+                            <input type="number" id="globalSimulationBonus" value="0" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-subsection">
+                    <h3>Configuration par Rédacteur</h3>
+                    <div id="writerConfigs" class="writer-configs"></div>
+                </div>
+
+                <button id="applyConfig" class="btn btn-primary">Appliquer Configuration</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="app-header">
+                <h1>Simulateur de Tarification Ramify</h1>
+                <nav class="tabs">
+                    <button class="tab-button active" data-tab="dashboard">Tableau de Bord</button>
+                    <button class="tab-button" data-tab="datagrid">Grille de Données</button>
+                </nav>
+            </header>
+
+            <div class="tab-content">
+                <div id="dashboard" class="tab-panel active">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <h3>Articles Totaux</h3>
+                            <div class="metric-value" id="totalArticles">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <h3>Mots Moyens</h3>
+                            <div class="metric-value" id="avgWordCount">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <h3>Mots Médians</h3>
+                            <div class="metric-value" id="medianWordCount">-</div>
+                        </div>
+                        <div class="metric-card">
+                            <h3>CV Global</h3>
+                            <div class="metric-value" id="globalCV">-</div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-section">
+                        <div class="comparison-card">
+                            <h3>Coût Total</h3>
+                            <div class="comparison-values">
+                                <div class="comparison-item">
+                                    <span class="label">Baseline:</span>
+                                    <span class="value" id="totalCostBaseline">-</span>
+                                </div>
+                                <div class="comparison-item">
+                                    <span class="label">Simulation:</span>
+                                    <span class="value" id="totalCostSimulation">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comparison-card">
+                            <h3>Coût Moyen par Article</h3>
+                            <div class="comparison-values">
+                                <div class="comparison-item">
+                                    <span class="label">Baseline:</span>
+                                    <span class="value" id="avgCostBaseline">-</span>
+                                </div>
+                                <div class="comparison-item">
+                                    <span class="label">Simulation:</span>
+                                    <span class="value" id="avgCostSimulation">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comparison-card highlight">
+                            <h3>Économies/Augmentation Totales</h3>
+                            <div class="savings-display">
+                                <div class="savings-amount" id="totalSavings">-</div>
+                                <div class="savings-percent" id="savingsPercent">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="writer-breakdown">
+                        <h3>Analyse par Rédacteur</h3>
+                        <div class="table-container">
+                            <table id="writerTable" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rédacteur</th>
+                                        <th>Articles</th>
+                                        <th>Mots Moy.</th>
+                                        <th>CV</th>
+                                        <th>P25</th>
+                                        <th>P75</th>
+                                        <th>Coût Baseline (€)</th>
+                                        <th>Coût Simulation (€)</th>
+                                        <th>Différence (%)</th>
+                                        <th>Taux Effectif Base</th>
+                                        <th>Taux Effectif Sim</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="writerTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="charts-section">
+                        <div class="chart-container">
+                            <h3>Évolution du Nombre de Mots</h3>
+                            <canvas id="wordCountTrendChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Comparaison des Coûts par Rédacteur</h3>
+                            <canvas id="costComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="datagrid" class="tab-panel">
+                    <div class="datagrid-header">
+                        <h3>Données Détaillées des Articles</h3>
+                        <input type="text" id="searchInput" placeholder="Rechercher..." class="search-input">
+                    </div>
+                    <div class="table-container">
+                        <table id="articleTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Rédacteur</th>
+                                    <th>Date de Publication</th>
+                                    <th>Nombre de Mots</th>
+                                    <th>Coût Baseline (€)</th>
+                                    <th>Coût Simulation (€)</th>
+                                    <th>Différence (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="articleTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
