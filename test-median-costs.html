@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Median and Average Costs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+        .metric-check {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-left: 4px solid #0EA5E9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test New Median and Average Cost Metrics</h1>
+    
+    <div class="test-section">
+        <h2>New Features Checklist</h2>
+        
+        <div class="metric-check">
+            <h3>✓ Overall Median Costs (Dashboard)</h3>
+            <ul>
+                <li>New comparison card: "Coût Médian par Article"</li>
+                <li>Shows median cost for Baseline</li>
+                <li>Shows median cost for Simulation</li>
+                <li>Located between Average Cost and Total Savings cards</li>
+            </ul>
+        </div>
+        
+        <div class="metric-check">
+            <h3>✓ Per-Writer Average Costs (Writer Table)</h3>
+            <ul>
+                <li>Column: "Coût Moy. Base (€)" - Average baseline cost per article</li>
+                <li>Column: "Coût Moy. Sim (€)" - Average simulation cost per article</li>
+                <li>Sortable by clicking headers</li>
+            </ul>
+        </div>
+        
+        <div class="metric-check">
+            <h3>✓ Per-Writer Median Costs (Writer Table)</h3>
+            <ul>
+                <li>Column: "Coût Méd. Base (€)" - Median baseline cost per article</li>
+                <li>Column: "Coût Méd. Sim (€)" - Median simulation cost per article</li>
+                <li>Sortable by clicking headers</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Testing Steps</h2>
+        <ol>
+            <li>Load the application below</li>
+            <li>Upload the sample-data.csv file</li>
+            <li>Verify the new "Coût Médian par Article" card appears in the dashboard</li>
+            <li>Check that the writer table now has 13 columns instead of 11</li>
+            <li>Verify that per-writer average and median costs are calculated correctly</li>
+            <li>Test sorting on the new columns</li>
+            <li>Open configuration modal and apply changes - metrics should update</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li><strong>Median vs Average:</strong> The median cost should be different from the average cost, especially if there are outliers in the data</li>
+            <li><strong>Per-Writer Variation:</strong> Each writer should have different average and median costs based on their article lengths</li>
+            <li><strong>Sorting:</strong> Clicking on any of the new column headers should sort the table by that metric</li>
+            <li><strong>Configuration Impact:</strong> Changing pricing models in configuration should update all average and median calculations</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Application Preview</h2>
+        <iframe src="index.html"></iframe>
+    </div>
+    
+    <div class="test-section">
+        <h2>Manual Verification</h2>
+        <p>After testing with sample data, verify:</p>
+        <ul>
+            <li>☐ Overall median costs display correctly in dashboard</li>
+            <li>☐ Per-writer average costs are calculated correctly (total cost / article count)</li>
+            <li>☐ Per-writer median costs show the middle value when articles are sorted by cost</li>
+            <li>☐ All new columns are sortable</li>
+            <li>☐ No JavaScript errors in console</li>
+            <li>☐ Layout remains responsive and readable with additional columns</li>
+        </ul>
+    </div>
+</body>
+</html>

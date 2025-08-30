@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Sorting Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sorting Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Checklist</h2>
+        <ol>
+            <li>Load the application with sample data</li>
+            <li>Click on writer table headers to sort:
+                <ul>
+                    <li>Click "Rédacteur" - should sort alphabetically</li>
+                    <li>Click "Articles" - should sort by article count</li>
+                    <li>Click "Mots Moyens" - should sort by average word count</li>
+                    <li>Click "CV" - should sort by coefficient of variation</li>
+                    <li>Click any cost column - should sort numerically</li>
+                </ul>
+            </li>
+            <li>Click on article table headers to sort:
+                <ul>
+                    <li>Click "URL" - should sort alphabetically</li>
+                    <li>Click "Rédacteur" - should sort by writer name</li>
+                    <li>Click "Date" - should sort chronologically</li>
+                    <li>Click "Nombre de Mots" - should sort numerically</li>
+                    <li>Click cost columns - should sort by amounts</li>
+                </ul>
+            </li>
+            <li>Verify arrow indicators:
+                <ul>
+                    <li>Up arrow (▲) for ascending sort</li>
+                    <li>Down arrow (▼) for descending sort</li>
+                    <li>Click same header twice to toggle direction</li>
+                </ul>
+            </li>
+            <li>Test search with sorting:
+                <ul>
+                    <li>Sort a column</li>
+                    <li>Use search to filter results</li>
+                    <li>Clear search - sorting should persist</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Application Preview</h2>
+        <iframe src="index.html"></iframe>
+    </div>
+    
+    <div class="test-section">
+        <h2>Manual Test Results</h2>
+        <p>After testing, verify:</p>
+        <ul>
+            <li>✓ Headers are clickable and show visual feedback</li>
+            <li>✓ Sorting arrows appear and change direction</li>
+            <li>✓ Data sorts correctly in both ascending and descending order</li>
+            <li>✓ Numeric values sort numerically (not alphabetically)</li>
+            <li>✓ Dates sort chronologically</li>
+            <li>✓ Search and sort work together without conflicts</li>
+        </ul>
+    </div>
+</body>
+</html>

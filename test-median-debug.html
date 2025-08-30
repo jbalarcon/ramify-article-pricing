@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Median Cost Calculation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .warning {
+            color: orange;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #0EA5E9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0284C7;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Median Cost Calculation</h1>
+    
+    <div class="test-section">
+        <h2>Problem Identified</h2>
+        <p class="warning">⚠️ Default Configuration Issue</p>
+        <p>Both baseline and simulation start with identical default configurations:</p>
+        <div class="code">
+baseline: { model: 'PW', params: { rate: 0.13 }, bonusPercent: 0 }
+simulation: { model: 'PW', params: { rate: 0.13 }, bonusPercent: 0 }
+        </div>
+        <p>This means if you don't change the configuration, all costs will be identical!</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Testing Steps</h2>
+        <ol>
+            <li><strong>Load the application</strong> and upload sample-data.csv</li>
+            <li><strong>Check initial values:</strong> Median costs should be identical if configuration hasn't been changed</li>
+            <li><strong>Open configuration modal</strong></li>
+            <li><strong>Change the simulation model</strong> to something different:
+                <ul>
+                    <li>Try Fixed Price (FP) with amount 150€</li>
+                    <li>Or change PW rate to 0.15€ instead of 0.13€</li>
+                    <li>Or add a bonus percentage</li>
+                </ul>
+            </li>
+            <li><strong>Apply configuration</strong></li>
+            <li><strong>Check that median values are now different</strong></li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Interactive Test</h2>
+        <p>Click the button below to open the app and test with console logging:</p>
+        <button onclick="testMedianCalculation()">Open App with Debug Console</button>
+        <div id="results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li class="success">✓ When configurations are identical: Median baseline = Median simulation</li>
+            <li class="success">✓ When configurations differ: Median baseline ≠ Median simulation</li>
+            <li class="success">✓ Average costs should follow the same pattern</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>How to Verify in Console</h2>
+        <p>Open browser console (F12) and after loading data, run:</p>
+        <div class="code">
+// Get the simulator instance
+const sim = window.pricingSimulator;
+
+// Check current configuration
+console.log('Baseline config:', sim.configuration.globalDefaults.baseline);
+console.log('Simulation config:', sim.configuration.globalDefaults.simulation);
+
+// Check if costs are different
+const baselineCosts = sim.articles.map(a => a.baselineCost);
+const simulationCosts = sim.articles.map(a => a.simulationCost);
+console.log('First 5 baseline costs:', baselineCosts.slice(0, 5));
+console.log('First 5 simulation costs:', simulationCosts.slice(0, 5));
+
+// Check if they're identical
+const areIdentical = baselineCosts.every((cost, i) => cost === simulationCosts[i]);
+console.log('Costs are identical?', areIdentical);
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Solution</h2>
+        <p>The median calculation is working correctly. The issue is that both configurations start with the same values.</p>
+        <p><strong>To see different median values:</strong></p>
+        <ol>
+            <li>Open the configuration modal</li>
+            <li>Change the "Nouvelle Tarification" (simulation) to use different parameters</li>
+            <li>Apply the configuration</li>
+            <li>The median values will then be different</li>
+        </ol>
+    </div>
+    
+    <script>
+        function testMedianCalculation() {
+            window.open('index.html', '_blank');
+            document.getElementById('results').innerHTML = `
+                <p class="success">✓ App opened in new tab</p>
+                <p>Follow the console instructions in the new tab to debug the median calculation.</p>
+            `;
+        }
+    </script>
+</body>
+</html>

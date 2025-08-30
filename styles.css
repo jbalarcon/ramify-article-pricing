@@ -395,7 +395,7 @@ body {
     padding: 24px;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .writer-breakdown h3 {
@@ -403,6 +403,61 @@ body {
     font-weight: 600;
     margin-bottom: 20px;
     color: var(--gray-900);
+}
+
+.cost-comparison {
+    background: var(--white);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 32px;
+}
+
+.cost-comparison h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--gray-900);
+}
+
+.cost-comparison-table .group-header {
+    text-align: center;
+    font-weight: 600;
+    padding: 12px 8px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.cost-comparison-table .reference-group {
+    background: linear-gradient(135deg, var(--sky-50), var(--sky-100));
+    color: var(--sky-800);
+}
+
+.cost-comparison-table .simulation-group {
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    color: #92400E;
+}
+
+.cost-comparison-table .impact-group {
+    background: linear-gradient(135deg, var(--gray-50), var(--gray-100));
+    color: var(--gray-800);
+}
+
+.cost-comparison-table .sub-header {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.cost-comparison-table tbody td {
+    border-right: 1px solid var(--gray-100);
+}
+
+.cost-comparison-table tbody td:nth-child(5),
+.cost-comparison-table tbody td:nth-child(9) {
+    border-right: 2px solid var(--gray-200);
+}
+
+.cost-comparison-table tbody td:last-child {
+    border-right: none;
 }
 
 .table-container {
@@ -422,12 +477,66 @@ body {
     font-weight: 600;
     color: var(--gray-700);
     border-bottom: 2px solid var(--gray-200);
-    cursor: pointer;
-    user-select: none;
 }
 
-.data-table th:hover {
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 24px;
+}
+
+.sortable-header:hover {
     background: var(--gray-100);
+}
+
+.sort-arrow {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    opacity: 0.3;
+}
+
+.sort-arrow::before,
+.sort-arrow::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+}
+
+.sort-arrow::before {
+    border-bottom: 4px solid var(--gray-400);
+    top: -6px;
+    left: -4px;
+}
+
+.sort-arrow::after {
+    border-top: 4px solid var(--gray-400);
+    bottom: -6px;
+    left: -4px;
+}
+
+.sortable-header.sort-asc .sort-arrow::before {
+    border-bottom-color: var(--sky-600);
+    opacity: 1;
+}
+
+.sortable-header.sort-desc .sort-arrow::after {
+    border-top-color: var(--sky-600);
+    opacity: 1;
+}
+
+.sortable-header.sort-asc .sort-arrow,
+.sortable-header.sort-desc .sort-arrow {
+    opacity: 1;
 }
 
 .data-table td {

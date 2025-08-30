@@ -9,6 +9,11 @@ class PricingSimulator {
             },
             writerOverrides: {}
         };
+        this.sortState = {
+            writerStatsTable: { column: null, direction: 'asc' },
+            writerCostTable: { column: null, direction: 'asc' },
+            articleTable: { column: null, direction: 'asc' }
+        };
         this.initializeEventListeners();
     }
 
@@ -111,6 +116,9 @@ class PricingSimulator {
                 this.filterDataGrid(e.target.value);
             });
         }
+        
+        // Initialize table sorting
+        this.initializeTableSorting();
 
         // Initialize default model parameters
         this.tempConfig = {
@@ -420,10 +428,19 @@ class PricingSimulator {
         
         const overrideCount = Object.keys(this.configuration.writerOverrides).length;
         
+        // Count baseline and simulation overrides
+        let baselineOverrides = 0;
+        let simulationOverrides = 0;
+        Object.values(this.configuration.writerOverrides).forEach(override => {
+            if (override.baseline) baselineOverrides++;
+            if (override.simulation) simulationOverrides++;
+        });
+        
         summary.innerHTML = `
-            <div><strong>Tarification actuelle:</strong> ${baselineModel}</div>
-            <div><strong>Nouvelle tarification:</strong> ${simulationModel}</div>
-            ${overrideCount > 0 ? `<div><strong>Personnalisations:</strong> ${overrideCount} rédacteur(s)</div>` : ''}
+            <div><strong>Référence:</strong> ${baselineModel}</div>
+            ${baselineOverrides > 0 ? `<div style="margin-left: 20px; font-size: 0.9em; color: #6B7280;">${baselineOverrides} personnalisation(s)</div>` : ''}
+            <div><strong>Simulation:</strong> ${simulationModel}</div>
+            ${simulationOverrides > 0 ? `<div style="margin-left: 20px; font-size: 0.9em; color: #6B7280;">${simulationOverrides} personnalisation(s)</div>` : ''}
         `;
     }
     
@@ -508,6 +525,22 @@ class PricingSimulator {
             article.baselineCost = this.calculateCost(article.wordCount, baselineConfig);
             article.simulationCost = this.calculateCost(article.wordCount, simulationConfig);
         });
+        
+        // Debug: Check if configurations are different
+        const firstArticle = this.articles[0];
+        if (firstArticle) {
+            console.log('Configuration comparison:');
+            console.log('Global baseline config:', this.configuration.globalDefaults.baseline);
+            console.log('Global simulation config:', this.configuration.globalDefaults.simulation);
+            console.log('Writer overrides:', this.configuration.writerOverrides);
+            console.log('Sample costs - Baseline:', firstArticle.baselineCost.toFixed(2), 'Simulation:', firstArticle.simulationCost.toFixed(2));
+            
+            // Show which writers have overrides
+            const overriddenWriters = Object.keys(this.configuration.writerOverrides);
+            if (overriddenWriters.length > 0) {
+                console.log('Writers with custom pricing:', overriddenWriters);
+            }
+        }
         
         this.updateDashboard();
         this.updateDataGrid();
@@ -597,6 +630,13 @@ class PricingSimulator {
         const totalSimulationCost = this.articles.reduce((sum, a) => sum + a.simulationCost, 0);
         const avgBaselineCost = totalBaselineCost / totalArticles;
         const avgSimulationCost = totalSimulationCost / totalArticles;
+        
+        // Calculate median costs
+        const baselineCosts = this.articles.map(a => a.baselineCost).sort((a, b) => a - b);
+        const simulationCosts = this.articles.map(a => a.simulationCost).sort((a, b) => a - b);
+        const medianBaselineCost = this.calculateMedian(baselineCosts);
+        const medianSimulationCost = this.calculateMedian(simulationCosts);
+        
         const savings = totalSimulationCost - totalBaselineCost;
         const savingsPercent = totalBaselineCost > 0 ? (savings / totalBaselineCost) * 100 : 0;
         
@@ -604,6 +644,8 @@ class PricingSimulator {
         document.getElementById('totalCostSimulation').textContent = `${totalSimulationCost.toFixed(2)} €`;
         document.getElementById('avgCostBaseline').textContent = `${avgBaselineCost.toFixed(2)} €`;
         document.getElementById('avgCostSimulation').textContent = `${avgSimulationCost.toFixed(2)} €`;
+        document.getElementById('medianCostBaseline').textContent = `${medianBaselineCost.toFixed(2)} €`;
+        document.getElementById('medianCostSimulation').textContent = `${medianSimulationCost.toFixed(2)} €`;
         document.getElementById('totalSavings').textContent = `${savings > 0 ? '+' : ''}${savings.toFixed(2)} €`;
         document.getElementById('savingsPercent').textContent = `${savingsPercent > 0 ? '+' : ''}${savingsPercent.toFixed(1)}%`;
         
@@ -614,39 +656,150 @@ class PricingSimulator {
             savingsCard.style.background = 'linear-gradient(135deg, #0EA5E9, #0284C7)';
         }
         
-        this.updateWriterTable();
+        this.updateWriterStatsTable();
+        this.updateWriterCostTable();
     }
 
-    updateWriterTable() {
-        const tbody = document.getElementById('writerTableBody');
+    updateWriterStatsTable() {
+        const tbody = document.getElementById('writerStatsTableBody');
         tbody.innerHTML = '';
         
         const writerStats = this.calculateWriterStatistics();
         
+        // Prepare data for sorting
+        const writerData = [];
         this.writers.forEach(writer => {
             const stats = writerStats[writer];
+            
+            writerData.push({
+                writer: writer,
+                articles: stats.count,
+                avgWords: stats.mean,
+                cv: stats.cv,
+                p25: stats.p25,
+                p75: stats.p75
+            });
+        });
+        
+        // Apply sorting if a column is selected
+        if (this.sortState.writerStatsTable.column) {
+            const column = this.sortState.writerStatsTable.column;
+            const direction = this.sortState.writerStatsTable.direction;
+            
+            writerData.sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                // Handle string vs number comparison
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+                } else {
+                    return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+                }
+            });
+        }
+        
+        // Render sorted data
+        writerData.forEach(data => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.writer}</td>
+                <td>${data.articles}</td>
+                <td>${data.avgWords.toLocaleString('fr-FR')}</td>
+                <td>${data.cv.toFixed(2)}</td>
+                <td>${data.p25.toLocaleString('fr-FR')}</td>
+                <td>${data.p75.toLocaleString('fr-FR')}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    updateWriterCostTable() {
+        const tbody = document.getElementById('writerCostTableBody');
+        tbody.innerHTML = '';
+        
+        // Prepare data for sorting
+        const costData = [];
+        this.writers.forEach(writer => {
             const writerArticles = this.articles.filter(a => a.writer === writer);
             
             const totalWords = writerArticles.reduce((sum, a) => sum + a.wordCount, 0);
             const totalBaselineCost = writerArticles.reduce((sum, a) => sum + a.baselineCost, 0);
             const totalSimulationCost = writerArticles.reduce((sum, a) => sum + a.simulationCost, 0);
-            const difference = ((totalSimulationCost - totalBaselineCost) / totalBaselineCost) * 100;
+            
+            // Calculate average and median costs per article
+            const baselineCostsForWriter = writerArticles.map(a => a.baselineCost).sort((a, b) => a - b);
+            const simulationCostsForWriter = writerArticles.map(a => a.simulationCost).sort((a, b) => a - b);
+            const avgCostBaseline = writerArticles.length > 0 ? totalBaselineCost / writerArticles.length : 0;
+            const avgCostSimulation = writerArticles.length > 0 ? totalSimulationCost / writerArticles.length : 0;
+            const medianCostBaseline = writerArticles.length > 0 ? this.calculateMedian(baselineCostsForWriter) : 0;
+            const medianCostSimulation = writerArticles.length > 0 ? this.calculateMedian(simulationCostsForWriter) : 0;
+            
+            // Calculate effective rates (cost per word)
             const effectiveRateBaseline = totalWords > 0 ? totalBaselineCost / totalWords : 0;
             const effectiveRateSimulation = totalWords > 0 ? totalSimulationCost / totalWords : 0;
             
+            const difference = totalBaselineCost > 0 ? ((totalSimulationCost - totalBaselineCost) / totalBaselineCost) * 100 : 0;
+            const savings = totalBaselineCost - totalSimulationCost;
+            
+            costData.push({
+                writer: writer,
+                avgCostBaseline: avgCostBaseline,
+                medianCostBaseline: medianCostBaseline,
+                baselineCost: totalBaselineCost,
+                effectiveRateBaseline: effectiveRateBaseline,
+                avgCostSimulation: avgCostSimulation,
+                medianCostSimulation: medianCostSimulation,
+                simulationCost: totalSimulationCost,
+                effectiveRateSimulation: effectiveRateSimulation,
+                difference: difference,
+                savings: savings
+            });
+        });
+        
+        // Apply sorting if a column is selected
+        if (this.sortState.writerCostTable.column) {
+            const column = this.sortState.writerCostTable.column;
+            const direction = this.sortState.writerCostTable.direction;
+            
+            costData.sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                // Handle string vs number comparison
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+                } else {
+                    return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+                }
+            });
+        }
+        
+        // Render sorted data
+        costData.forEach(data => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${writer}</td>
-                <td>${stats.count}</td>
-                <td>${stats.mean.toLocaleString('fr-FR')}</td>
-                <td>${stats.cv.toFixed(2)}</td>
-                <td>${stats.p25.toLocaleString('fr-FR')}</td>
-                <td>${stats.p75.toLocaleString('fr-FR')}</td>
-                <td>${totalBaselineCost.toFixed(2)} €</td>
-                <td>${totalSimulationCost.toFixed(2)} €</td>
-                <td style="color: ${difference < 0 ? '#10B981' : '#EF4444'}">${difference > 0 ? '+' : ''}${difference.toFixed(1)}%</td>
-                <td>${effectiveRateBaseline.toFixed(3)} €</td>
-                <td>${effectiveRateSimulation.toFixed(3)} €</td>
+                <td>${data.writer}</td>
+                <td>${data.avgCostBaseline.toFixed(2)} €</td>
+                <td>${data.medianCostBaseline.toFixed(2)} €</td>
+                <td>${data.baselineCost.toFixed(2)} €</td>
+                <td>${data.effectiveRateBaseline.toFixed(4)} €</td>
+                <td>${data.avgCostSimulation.toFixed(2)} €</td>
+                <td>${data.medianCostSimulation.toFixed(2)} €</td>
+                <td>${data.simulationCost.toFixed(2)} €</td>
+                <td>${data.effectiveRateSimulation.toFixed(4)} €</td>
+                <td style="color: ${data.difference < 0 ? '#10B981' : '#EF4444'}">${data.difference > 0 ? '+' : ''}${data.difference.toFixed(1)}%</td>
+                <td style="color: ${data.savings > 0 ? '#10B981' : '#EF4444'}">${data.savings > 0 ? '-' : '+'}${Math.abs(data.savings).toFixed(2)} €</td>
             `;
             tbody.appendChild(row);
         });
@@ -656,7 +809,62 @@ class PricingSimulator {
         const tbody = document.getElementById('articleTableBody');
         tbody.innerHTML = '';
         
-        this.articles.forEach(article => {
+        // Create a copy of articles for sorting
+        let sortedArticles = [...this.articles];
+        
+        // Apply sorting if a column is selected
+        if (this.sortState.articleTable.column) {
+            const column = this.sortState.articleTable.column;
+            const direction = this.sortState.articleTable.direction;
+            
+            sortedArticles.sort((a, b) => {
+                let aVal, bVal;
+                
+                // Map column names to article properties
+                switch(column) {
+                    case 'url':
+                        aVal = a.url.toLowerCase();
+                        bVal = b.url.toLowerCase();
+                        break;
+                    case 'writer':
+                        aVal = a.writer.toLowerCase();
+                        bVal = b.writer.toLowerCase();
+                        break;
+                    case 'publishDate':
+                        aVal = a.publishDate;
+                        bVal = b.publishDate;
+                        break;
+                    case 'wordCount':
+                        aVal = a.wordCount;
+                        bVal = b.wordCount;
+                        break;
+                    case 'baselineCost':
+                        aVal = a.baselineCost;
+                        bVal = b.baselineCost;
+                        break;
+                    case 'simulationCost':
+                        aVal = a.simulationCost;
+                        bVal = b.simulationCost;
+                        break;
+                    case 'difference':
+                        aVal = a.simulationCost - a.baselineCost;
+                        bVal = b.simulationCost - b.baselineCost;
+                        break;
+                    default:
+                        aVal = a[column];
+                        bVal = b[column];
+                }
+                
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+                } else {
+                    return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+                }
+            });
+        }
+        
+        // Render sorted data
+        sortedArticles.forEach(article => {
             const difference = article.simulationCost - article.baselineCost;
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -682,25 +890,91 @@ class PricingSimulator {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         
-        const monthlyData = {};
+        // Calculate global monthly data
+        const globalMonthlyData = {};
+        // Calculate per-writer monthly data
+        const writerMonthlyData = {};
+        
         this.articles.forEach(article => {
             const monthKey = `${article.publishDate.getFullYear()}-${String(article.publishDate.getMonth() + 1).padStart(2, '0')}`;
-            if (!monthlyData[monthKey]) {
-                monthlyData[monthKey] = { count: 0, totalWords: 0 };
+            
+            // Global data
+            if (!globalMonthlyData[monthKey]) {
+                globalMonthlyData[monthKey] = { count: 0, totalWords: 0 };
             }
-            monthlyData[monthKey].count++;
-            monthlyData[monthKey].totalWords += article.wordCount;
+            globalMonthlyData[monthKey].count++;
+            globalMonthlyData[monthKey].totalWords += article.wordCount;
+            
+            // Per-writer data
+            if (!writerMonthlyData[article.writer]) {
+                writerMonthlyData[article.writer] = {};
+            }
+            if (!writerMonthlyData[article.writer][monthKey]) {
+                writerMonthlyData[article.writer][monthKey] = { count: 0, totalWords: 0 };
+            }
+            writerMonthlyData[article.writer][monthKey].count++;
+            writerMonthlyData[article.writer][monthKey].totalWords += article.wordCount;
         });
         
-        const sortedMonths = Object.keys(monthlyData).sort();
+        const sortedMonths = Object.keys(globalMonthlyData).sort();
         const labels = sortedMonths.map(month => {
             const [year, monthNum] = month.split('-');
             return new Date(year, monthNum - 1).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
         });
         
-        const avgWordCounts = sortedMonths.map(month => 
-            Math.round(monthlyData[month].totalWords / monthlyData[month].count)
+        // Prepare global dataset
+        const globalAvgWordCounts = sortedMonths.map(month => 
+            Math.round(globalMonthlyData[month].totalWords / globalMonthlyData[month].count)
         );
+        
+        // Define colors for writers
+        const writerColors = [
+            '#EF4444', // Red
+            '#10B981', // Green
+            '#F59E0B', // Amber
+            '#8B5CF6', // Violet
+            '#EC4899', // Pink
+            '#06B6D4', // Cyan
+            '#84CC16', // Lime
+            '#F97316'  // Orange
+        ];
+        
+        // Create datasets array
+        const datasets = [{
+            label: 'Moyenne globale',
+            data: globalAvgWordCounts,
+            borderColor: '#0EA5E9',
+            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+            borderWidth: 3,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }];
+        
+        // Add per-writer datasets
+        const sortedWriters = Array.from(this.writers).sort();
+        sortedWriters.forEach((writer, index) => {
+            const writerData = sortedMonths.map(month => {
+                if (writerMonthlyData[writer] && writerMonthlyData[writer][month]) {
+                    return Math.round(writerMonthlyData[writer][month].totalWords / writerMonthlyData[writer][month].count);
+                }
+                return null; // No data for this month
+            });
+            
+            const color = writerColors[index % writerColors.length];
+            datasets.push({
+                label: writer,
+                data: writerData,
+                borderColor: color,
+                backgroundColor: color + '20', // Add transparency
+                borderWidth: 2,
+                tension: 0.3,
+                spanGaps: true, // Connect lines across missing data points
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                borderDash: index % 2 === 0 ? [] : [5, 5] // Alternate solid and dashed lines
+            });
+        });
         
         if (window.wordCountChart && typeof window.wordCountChart.destroy === 'function') {
             window.wordCountChart.destroy();
@@ -710,21 +984,39 @@ class PricingSimulator {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Nombre de mots moyen',
-                    data: avgWordCounts,
-                    borderColor: '#0EA5E9',
-                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                    tension: 0.3
-                }]
+                datasets: datasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toLocaleString('fr-FR') + ' mots';
+                                }
+                                return label;
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -732,7 +1024,13 @@ class PricingSimulator {
                         beginAtZero: false,
                         title: {
                             display: true,
-                            text: 'Nombre de mots'
+                            text: 'Nombre de mots moyen'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Mois'
                         }
                     }
                 }
@@ -823,6 +1121,95 @@ class PricingSimulator {
         
         document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(tabName).classList.add('active');
+    }
+    
+    initializeTableSorting() {
+        // Add click listeners to writer stats table headers
+        document.querySelectorAll('#writerStatsTable .sortable-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.dataset.column;
+                this.sortWriterStatsTable(column);
+            });
+        });
+        
+        // Add click listeners to writer cost table headers
+        document.querySelectorAll('#writerCostTable .sortable-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.dataset.column;
+                this.sortWriterCostTable(column);
+            });
+        });
+        
+        // Add click listeners to article table headers
+        document.querySelectorAll('#articleTable .sortable-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.dataset.column;
+                this.sortArticleTable(column);
+            });
+        });
+    }
+    
+    sortWriterStatsTable(column) {
+        // Toggle sort direction if same column, otherwise reset to ascending
+        if (this.sortState.writerStatsTable.column === column) {
+            this.sortState.writerStatsTable.direction = this.sortState.writerStatsTable.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortState.writerStatsTable.column = column;
+            this.sortState.writerStatsTable.direction = 'asc';
+        }
+        
+        // Update header classes
+        document.querySelectorAll('#writerStatsTable .sortable-header').forEach(header => {
+            header.classList.remove('sort-asc', 'sort-desc');
+            if (header.dataset.column === column) {
+                header.classList.add(`sort-${this.sortState.writerStatsTable.direction}`);
+            }
+        });
+        
+        // Re-render the table with sorted data
+        this.updateWriterStatsTable();
+    }
+    
+    sortWriterCostTable(column) {
+        // Toggle sort direction if same column, otherwise reset to ascending
+        if (this.sortState.writerCostTable.column === column) {
+            this.sortState.writerCostTable.direction = this.sortState.writerCostTable.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortState.writerCostTable.column = column;
+            this.sortState.writerCostTable.direction = 'asc';
+        }
+        
+        // Update header classes
+        document.querySelectorAll('#writerCostTable .sortable-header').forEach(header => {
+            header.classList.remove('sort-asc', 'sort-desc');
+            if (header.dataset.column === column) {
+                header.classList.add(`sort-${this.sortState.writerCostTable.direction}`);
+            }
+        });
+        
+        // Re-render the table with sorted data
+        this.updateWriterCostTable();
+    }
+    
+    sortArticleTable(column) {
+        // Toggle sort direction if same column, otherwise reset to ascending
+        if (this.sortState.articleTable.column === column) {
+            this.sortState.articleTable.direction = this.sortState.articleTable.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortState.articleTable.column = column;
+            this.sortState.articleTable.direction = 'asc';
+        }
+        
+        // Update header classes
+        document.querySelectorAll('#articleTable .sortable-header').forEach(header => {
+            header.classList.remove('sort-asc', 'sort-desc');
+            if (header.dataset.column === column) {
+                header.classList.add(`sort-${this.sortState.articleTable.direction}`);
+            }
+        });
+        
+        // Re-render the table with sorted data
+        this.updateDataGrid();
     }
     
     openConfigModal() {
@@ -1195,7 +1582,11 @@ class PricingSimulator {
             // Read writer-specific parameters
             document.querySelectorAll(`.writer-param-input[data-writer="${writer}"][data-scenario="${scenario}"]`).forEach(input => {
                 const param = input.dataset.param;
-                config.params[param] = parseFloat(input.value) || 0;
+                if (param === 'bonus') {
+                    config.bonusPercent = parseFloat(input.value) || 0;
+                } else {
+                    config.params[param] = parseFloat(input.value) || 0;
+                }
             });
             
             // If no params found (shouldn't happen), use smart defaults

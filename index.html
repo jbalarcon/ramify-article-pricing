@@ -77,7 +77,7 @@
                             <h3>Coût Total</h3>
                             <div class="comparison-values">
                                 <div class="comparison-item">
-                                    <span class="label">Baseline:</span>
+                                    <span class="label">Référence:</span>
                                     <span class="value" id="totalCostBaseline">-</span>
                                 </div>
                                 <div class="comparison-item">
@@ -90,12 +90,25 @@
                             <h3>Coût Moyen par Article</h3>
                             <div class="comparison-values">
                                 <div class="comparison-item">
-                                    <span class="label">Baseline:</span>
+                                    <span class="label">Référence:</span>
                                     <span class="value" id="avgCostBaseline">-</span>
                                 </div>
                                 <div class="comparison-item">
                                     <span class="label">Simulation:</span>
                                     <span class="value" id="avgCostSimulation">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comparison-card">
+                            <h3>Coût Médian par Article</h3>
+                            <div class="comparison-values">
+                                <div class="comparison-item">
+                                    <span class="label">Référence:</span>
+                                    <span class="value" id="medianCostBaseline">-</span>
+                                </div>
+                                <div class="comparison-item">
+                                    <span class="label">Simulation:</span>
+                                    <span class="value" id="medianCostSimulation">-</span>
                                 </div>
                             </div>
                         </div>
@@ -109,25 +122,50 @@
                     </div>
 
                     <div class="writer-breakdown">
-                        <h3>Analyse par Rédacteur</h3>
+                        <h3>Statistiques des Rédacteurs</h3>
                         <div class="table-container">
-                            <table id="writerTable" class="data-table">
+                            <table id="writerStatsTable" class="data-table sortable">
                                 <thead>
                                     <tr>
-                                        <th>Rédacteur</th>
-                                        <th>Articles</th>
-                                        <th>Mots Moy.</th>
-                                        <th>CV</th>
-                                        <th>P25</th>
-                                        <th>P75</th>
-                                        <th>Coût Baseline (€)</th>
-                                        <th>Coût Simulation (€)</th>
-                                        <th>Différence (%)</th>
-                                        <th>Taux Effectif Base</th>
-                                        <th>Taux Effectif Sim</th>
+                                        <th data-column="writer" class="sortable-header">Rédacteur <span class="sort-arrow"></span></th>
+                                        <th data-column="articles" class="sortable-header">Articles <span class="sort-arrow"></span></th>
+                                        <th data-column="avgWords" class="sortable-header">Mots Moyens <span class="sort-arrow"></span></th>
+                                        <th data-column="cv" class="sortable-header">CV <span class="sort-arrow"></span></th>
+                                        <th data-column="p25" class="sortable-header">P25 <span class="sort-arrow"></span></th>
+                                        <th data-column="p75" class="sortable-header">P75 <span class="sort-arrow"></span></th>
                                     </tr>
                                 </thead>
-                                <tbody id="writerTableBody">
+                                <tbody id="writerStatsTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="cost-comparison">
+                        <h3>Comparaison des Coûts par Rédacteur</h3>
+                        <div class="table-container">
+                            <table id="writerCostTable" class="data-table sortable cost-comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" data-column="writer" class="sortable-header">Rédacteur <span class="sort-arrow"></span></th>
+                                        <th colspan="4" class="group-header reference-group">Tarification de Référence</th>
+                                        <th colspan="4" class="group-header simulation-group">Nouvelle Tarification</th>
+                                        <th colspan="2" class="group-header impact-group">Impact</th>
+                                    </tr>
+                                    <tr>
+                                        <th data-column="avgCostBaseline" class="sortable-header sub-header">Moyen <span class="sort-arrow"></span></th>
+                                        <th data-column="medianCostBaseline" class="sortable-header sub-header">Médian <span class="sort-arrow"></span></th>
+                                        <th data-column="baselineCost" class="sortable-header sub-header">Total <span class="sort-arrow"></span></th>
+                                        <th data-column="effectiveRateBaseline" class="sortable-header sub-header">€/Mot <span class="sort-arrow"></span></th>
+                                        <th data-column="avgCostSimulation" class="sortable-header sub-header">Moyen <span class="sort-arrow"></span></th>
+                                        <th data-column="medianCostSimulation" class="sortable-header sub-header">Médian <span class="sort-arrow"></span></th>
+                                        <th data-column="simulationCost" class="sortable-header sub-header">Total <span class="sort-arrow"></span></th>
+                                        <th data-column="effectiveRateSimulation" class="sortable-header sub-header">€/Mot <span class="sort-arrow"></span></th>
+                                        <th data-column="difference" class="sortable-header sub-header">Diff (%) <span class="sort-arrow"></span></th>
+                                        <th data-column="savings" class="sortable-header sub-header">Économies <span class="sort-arrow"></span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="writerCostTableBody">
                                 </tbody>
                             </table>
                         </div>
@@ -155,16 +193,16 @@
                         <input type="text" id="searchInput" placeholder="Rechercher..." class="search-input">
                     </div>
                     <div class="table-container">
-                        <table id="articleTable" class="data-table">
+                        <table id="articleTable" class="data-table sortable">
                             <thead>
                                 <tr>
-                                    <th>URL</th>
-                                    <th>Rédacteur</th>
-                                    <th>Date de Publication</th>
-                                    <th>Nombre de Mots</th>
-                                    <th>Coût Baseline (€)</th>
-                                    <th>Coût Simulation (€)</th>
-                                    <th>Différence (€)</th>
+                                    <th data-column="url" class="sortable-header">URL <span class="sort-arrow"></span></th>
+                                    <th data-column="writer" class="sortable-header">Rédacteur <span class="sort-arrow"></span></th>
+                                    <th data-column="date" class="sortable-header">Date de Publication <span class="sort-arrow"></span></th>
+                                    <th data-column="wordCount" class="sortable-header">Nombre de Mots <span class="sort-arrow"></span></th>
+                                    <th data-column="baselineCost" class="sortable-header">Coût Référence (€) <span class="sort-arrow"></span></th>
+                                    <th data-column="simulationCost" class="sortable-header">Coût Simulation (€) <span class="sort-arrow"></span></th>
+                                    <th data-column="difference" class="sortable-header">Différence (€) <span class="sort-arrow"></span></th>
                                 </tr>
                             </thead>
                             <tbody id="articleTableBody">
@@ -189,13 +227,13 @@
                     <!-- Left side: Model selection and parameters -->
                     <div class="config-main">
                         <div class="config-tabs">
-                            <button class="config-tab active" data-config="baseline">Tarification Actuelle</button>
+                            <button class="config-tab active" data-config="baseline">Tarification de Référence</button>
                             <button class="config-tab" data-config="simulation">Nouvelle Tarification</button>
                         </div>
                         
                         <div id="baseline-config" class="config-panel active">
-                            <h3>Tarification Actuelle (référence)</h3>
-                            <p class="help-text">Définissez votre modèle de tarification actuel pour servir de point de comparaison</p>
+                            <h3>Tarification de Référence</h3>
+                            <p class="help-text">Définissez votre modèle de tarification de référence pour servir de point de comparaison</p>
                             
                             <div class="model-selection">
                                 <h4>Modèle par défaut</h4>
@@ -333,7 +371,7 @@
                         <h3>Aperçu de l'impact</h3>
                         <div id="config-preview-content">
                             <div class="preview-metric">
-                                <label>Coût total actuel:</label>
+                                <label>Coût total de référence:</label>
                                 <span id="preview-baseline-cost">-</span>
                             </div>
                             <div class="preview-metric">

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Multi-Line Word Count Chart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .info {
+            color: #0EA5E9;
+            font-weight: bold;
+        }
+        .feature-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        iframe {
+            width: 100%;
+            height: 900px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Multi-Line Word Count Evolution Chart</h1>
+    
+    <div class="test-section">
+        <h2>New Features</h2>
+        <div class="feature-box">
+            <h3>✓ Multiple Lines on Chart</h3>
+            <ul>
+                <li><strong>Blue thick line:</strong> Global average (all writers combined)</li>
+                <li><strong>Colored lines:</strong> Individual writer averages</li>
+                <li>Solid lines for even-indexed writers</li>
+                <li>Dashed lines for odd-indexed writers (for visual distinction)</li>
+            </ul>
+        </div>
+        
+        <div class="feature-box">
+            <h3>✓ Handles Different Start Dates</h3>
+            <ul>
+                <li>Writers who haven't started yet show as null (no line)</li>
+                <li>Lines connect across missing months with <code>spanGaps: true</code></li>
+                <li>Each writer's line starts when they have their first article</li>
+            </ul>
+        </div>
+        
+        <div class="feature-box">
+            <h3>✓ Interactive Features</h3>
+            <ul>
+                <li>Hover over any point to see exact values</li>
+                <li>Click on legend items to show/hide specific lines</li>
+                <li>Tooltip shows all values for a given month</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Color Scheme</h2>
+        <div class="color-legend">
+            <div class="color-item">
+                <div class="color-box" style="background: #0EA5E9;"></div>
+                <span>Global Average</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #EF4444;"></div>
+                <span>Writer 1</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #10B981;"></div>
+                <span>Writer 2</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #F59E0B;"></div>
+                <span>Writer 3</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #8B5CF6;"></div>
+                <span>Writer 4</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #EC4899;"></div>
+                <span>Writer 5</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #06B6D4;"></div>
+                <span>Writer 6</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #84CC16;"></div>
+                <span>Writer 7</span>
+            </div>
+            <div class="color-item">
+                <div class="color-box" style="background: #F97316;"></div>
+                <span>Writer 8</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Testing Steps</h2>
+        <ol>
+            <li>Load the application below</li>
+            <li>Upload the sample-data.csv file</li>
+            <li>Look at the "Évolution du Nombre de Mots" chart</li>
+            <li>Verify you see multiple lines (1 global + 4 writer lines)</li>
+            <li>Hover over different points to see the tooltip</li>
+            <li>Click on legend items to toggle line visibility</li>
+            <li>Notice how lines start at different months if writers joined later</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>What to Look For</h2>
+        <ul>
+            <li class="info">Global trend line (blue) should be thicker and always visible</li>
+            <li class="info">Each writer has their own color and line style</li>
+            <li class="info">Legend shows all writers with their colors</li>
+            <li class="info">Tooltip displays values for all visible lines at once</li>
+            <li class="info">Lines properly handle months with no data</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Application Preview</h2>
+        <iframe src="index.html"></iframe>
+    </div>
+    
+    <div class="test-section">
+        <h2>Verification Checklist</h2>
+        <ul>
+            <li>☐ Multiple lines appear on the chart</li>
+            <li>☐ Global average line is visually distinct (thicker)</li>
+            <li>☐ Each writer has a unique color</li>
+            <li>☐ Legend displays correctly with all writers</li>
+            <li>☐ Clicking legend items toggles lines</li>
+            <li>☐ Hover tooltip shows all values</li>
+            <li>☐ Lines handle missing data gracefully</li>
+            <li>☐ Chart remains responsive and readable</li>
+        </ul>
+    </div>
+</body>
+</html>
